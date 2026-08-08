@@ -1,0 +1,14 @@
+---
+const base = import.meta.env.BASE_URL;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>&copy; {year} Weihan Chen. Built in Shanghai, kept in Git.</p>
+    <div>
+      <a href={`${base}rss.xml`}>RSS</a>
+      <a href="https://github.com/WeihanChen000">GitHub</a>
+    </div>
+  </div>
+</footer>

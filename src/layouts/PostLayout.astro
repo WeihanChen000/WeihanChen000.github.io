@@ -1,0 +1,41 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  tags?: string[];
+}
+
+const { title, description, pubDate, updatedDate, tags = [] } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const dateFormat = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "long",
+  day: "numeric"
+});
+---
+
+<BaseLayout title={title} description={description} bodyClass="article-page">
+  <article class="post-page">
+    <a class="back-link" href={`${base}archive/`}>&larr; 返回文章归档</a>
+    <header class="post-header">
+      <span class="post-binding-mark" aria-hidden="true"></span>
+      <div class="post-kicker">BUILD NOTE / {dateFormat.format(pubDate)}</div>
+      <h1>{title}</h1>
+      <p class="post-deck">{description}</p>
+      <div class="post-meta">
+        <span>发布于 {dateFormat.format(pubDate)}</span>
+        {updatedDate && <span>更新于 {dateFormat.format(updatedDate)}</span>}
+      </div>
+      <div class="tag-row" aria-label="文章标签">
+        {tags.map((tag) => <span>{tag}</span>)}
+      </div>
+    </header>
+    <div class="prose">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>

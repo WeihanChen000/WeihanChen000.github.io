@@ -1,0 +1,74 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  posts: CollectionEntry<"posts">[];
+  limit?: number;
+}
+
+const { posts, limit } = Astro.props;
+const visiblePosts = typeof limit === "number" ? posts.slice(0, limit) : posts;
+const base = import.meta.env.BASE_URL;
+const dateFormat = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const newestTime = visiblePosts[0]?.data.pubDate.valueOf() ?? 0;
+const oldestTime = visiblePosts.at(-1)?.data.pubDate.valueOf() ?? newestTime;
+const dateRange = Math.max(1, newestTime - oldestTime);
+const coverSrc = (cover: string) => `${base}${cover.replace(/^\/+/, "")}`;
+---
+
+<div class="logbook" aria-label="日志文章">
+  <div class="logbook-spine" aria-hidden="true"></div>
+  <div class="logbook-pages">
+    {visiblePosts.map((post, index) => {
+      const age = (newestTime - post.data.pubDate.valueOf()) / dateRange;
+      const pageNumber = String(visiblePosts.length - index).padStart(3, "0");
+      const isCurrent = index === 0;
+      const isOldest = index === visiblePosts.length - 1;
+      const pageShift = Math.round(age * 4 * 10) / 10;
+      const edgeWear = (0.035 + age * 0.055).toFixed(3);
+      const stampLightness = Math.round(31 + age * 19);
+      return (
+        <article
+          class:list={[
+            "log-entry",
+            isCurrent && "is-current",
+            age > 0.55 && "is-aged",
+            isOldest && "is-oldest",
+            post.data.cover ? "has-cover" : "no-cover",
+          ]}
+          style={`--paper-age: ${age.toFixed(3)}; --page-shift: ${pageShift}px; --edge-wear: ${edgeWear}; --stamp-lightness: ${stampLightness}%; --page-layer: ${visiblePosts.length - index}`}
+        >
+          <a class="log-entry-link" href={`${base}posts/${post.id}/`} aria-label={`阅读《${post.data.title}》`}>
+            <div class="log-entry-meta">
+              <span class="log-page-number">P.{pageNumber}</span>
+              <time datetime={post.data.pubDate.toISOString()}>{dateFormat.format(post.data.pubDate)}</time>
+              {post.data.tags[0] && <span>{post.data.tags[0]}</span>}
+            </div>
+
+            <div class="log-entry-copy">
+              <h2>{post.data.title}</h2>
+              <p>{post.data.description}</p>
+            </div>
+
+            {post.data.cover && (
+              <figure class="log-entry-cover">
+                <img
+                  src={coverSrc(post.data.cover)}
+                  alt={post.data.coverAlt}
+                  loading={isCurrent ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </figure>
+            )}
+
+            <span class="log-entry-tab" aria-hidden="true"></span>
+          </a>
+        </article>
+      );
+    })}
+  </div>
+</div>

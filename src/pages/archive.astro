@@ -1,0 +1,37 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PinnedSticker from "../components/PinnedSticker.astro";
+import PostList from "../components/PostList.astro";
+import "../styles/archive.css";
+
+const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+---
+
+<BaseLayout
+  title="日志"
+  description="Weihan Chen 的个人工作日志。"
+  bodyClass="archive-body"
+  preloadImages={["assets/stickers/prop-books.webp"]}
+>
+  <section class="archive-page">
+    <header class="archive-heading">
+      <p aria-label={`共 ${posts.length} 篇日志`}>{posts.length}</p>
+    </header>
+
+    <div class="archive-book-wrap">
+      <PostList posts={posts} />
+      <PinnedSticker
+        class="archive-books-sticker desktop-easter-egg"
+        src="assets/stickers/prop-books.webp"
+        label="轻轻摆动书本贴纸"
+        width={1171}
+        height={920}
+        fastener="pin"
+        tone="copper"
+      />
+    </div>
+  </section>
+</BaseLayout>

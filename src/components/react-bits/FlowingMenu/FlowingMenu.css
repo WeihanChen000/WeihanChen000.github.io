@@ -1,0 +1,122 @@
+.flowing-menu {
+  overflow: hidden;
+}
+
+.flowing-menu__item {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.flowing-menu__item > :not(.flowing-menu__marquee) {
+  position: relative;
+  z-index: 1;
+}
+
+.flowing-menu__marquee {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  overflow: hidden;
+  color: var(--carbon);
+  background: #d99a38;
+  clip-path: inset(100% 0 0 0);
+  pointer-events: none;
+  transition: clip-path 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.flowing-menu__marquee[data-flow-edge="top"] {
+  clip-path: inset(0 0 100% 0);
+}
+
+.flowing-menu__marquee[data-flow-visible] {
+  clip-path: inset(0);
+}
+
+.flowing-menu .flowing-menu__item:hover,
+.flowing-menu .flowing-menu__item:focus-visible {
+  color: var(--carbon);
+  background: transparent;
+}
+
+.flowing-menu .flowing-menu__item:hover > p,
+.flowing-menu .flowing-menu__item:focus-visible > p {
+  color: #4f4b46;
+}
+
+.flowing-menu__item .project-arrow {
+  z-index: 3;
+}
+
+.flowing-menu__marquee-clip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.flowing-menu__marquee-inner {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  align-items: center;
+  opacity: 0.2;
+  will-change: transform;
+}
+
+.flowing-menu__marquee-part {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 28px;
+  padding-right: 34px;
+  color: rgba(23, 23, 25, 0.72);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flowing-menu__marquee-part strong {
+  color: rgba(255, 252, 245, 0.9);
+  font-family: "Arial Black", "Microsoft YaHei", sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.flowing-menu__marquee-part i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  background: rgba(23, 23, 25, 0.72);
+  transform: rotate(45deg);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .flowing-menu__item:hover .flowing-menu__marquee,
+  .flowing-menu__item:focus-visible .flowing-menu__marquee {
+    clip-path: inset(0);
+  }
+}
+
+@media (max-width: 719px), (hover: none), (pointer: coarse) {
+  .flowing-menu__marquee {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flowing-menu__item:hover,
+  .flowing-menu__item:focus-visible {
+    color: var(--carbon);
+    background: rgba(214, 138, 24, 0.16);
+  }
+
+  .flowing-menu__marquee {
+    display: none;
+  }
+}

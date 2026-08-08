@@ -1,0 +1,284 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LiquidEtherBackground from "../components/LiquidEther/LiquidEtherBackground.jsx";
+import PinnedSticker from "../components/PinnedSticker.astro";
+import ProjectGrid from "../components/ProjectGrid.astro";
+import "../styles/home.css";
+
+const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const featuredPosts = posts.slice(0, 5);
+const latestPost = posts[0];
+const base = import.meta.env.BASE_URL;
+const dateFormat = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+---
+
+<BaseLayout
+  bodyClass="home-page"
+  title="Weihan Chen | Personal Blog"
+  description="Weihan Chen 的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。"
+  image="assets/character/sheep-hero.png"
+  preloadImages={[
+    "assets/stickers/sheep-working.webp",
+    "assets/stickers/sheep-guitar.webp",
+    "assets/stickers/sheep-listening.webp",
+    "assets/stickers/prop-laptop.webp",
+    "assets/stickers/prop-guitar.webp",
+    "assets/stickers/prop-headphones.webp",
+  ]}
+>
+  <section class="hero" data-home-hero aria-labelledby="hero-title">
+    <LiquidEtherBackground client:only="react" />
+
+    <div class="hero-graphic" aria-hidden="true">
+      <span class="hero-graphic-ring"></span>
+      <span class="hero-graphic-ring hero-graphic-ring--inner"></span>
+      <span class="hero-graphic-axis hero-graphic-axis--horizontal"></span>
+      <span class="hero-graphic-axis hero-graphic-axis--vertical"></span>
+      <span class="hero-graphic-label">BUILD / ITERATE / PUBLISH</span>
+    </div>
+
+    <p class="hero-edition" aria-hidden="true">PERSONAL BUILD LOG / 2026</p>
+
+    <h1 class="hero-heading" id="hero-title">
+      <span>WEIHAN</span>
+      <span>CHEN</span>
+    </h1>
+
+    <figure class="hero-portrait" aria-label="Weihan 的街头羊角色互动舞台" data-sticker-stage data-state="work">
+      <span class="sticker-register-sheet" aria-hidden="true"></span>
+      <span class="sticker-tape" aria-hidden="true"></span>
+      <span class="sticker-motion-line" aria-hidden="true"></span>
+
+      <button
+        class="hero-character-button"
+        type="button"
+        aria-label="打开角色动态，当前正在使用电脑"
+        aria-expanded="false"
+        aria-controls="character-status-bubble"
+        data-character-trigger
+      >
+        <span class="sticker-character-stack" aria-hidden="true">
+          <img
+            class="sticker-character-pose is-active"
+            src={`${base}assets/stickers/sheep-working.webp`}
+            alt=""
+            width="922"
+            height="1486"
+            decoding="async"
+            loading="eager"
+            fetchpriority="high"
+            data-character-pose="work"
+          />
+          <img
+            class="sticker-character-pose"
+            src={`${base}assets/stickers/sheep-guitar.webp`}
+            alt=""
+            width="953"
+            height="1650"
+            decoding="async"
+            loading="eager"
+            data-character-pose="guitar"
+          />
+          <img
+            class="sticker-character-pose"
+            src={`${base}assets/stickers/sheep-listening.webp`}
+            alt=""
+            width="724"
+            height="1495"
+            decoding="async"
+            loading="eager"
+            data-character-pose="music"
+          />
+        </span>
+      </button>
+
+      <div class="sticker-dock" role="group" aria-label="切换角色动作">
+        <button
+          class="sticker-prop is-active"
+          type="button"
+          aria-label="让角色使用电脑"
+          title="使用电脑"
+          aria-pressed="true"
+          data-sticker-action="work"
+        >
+          <span class="sticker-prop-art" aria-hidden="true">
+            <img src={`${base}assets/stickers/prop-laptop.webp`} alt="" width="1350" height="1013" decoding="async" loading="eager" />
+          </span>
+          <span class="sticker-prop-indicator" aria-hidden="true"></span>
+        </button>
+        <button
+          class="sticker-prop"
+          type="button"
+          aria-label="让角色弹吉他"
+          title="弹吉他"
+          aria-pressed="false"
+          data-sticker-action="guitar"
+        >
+          <span class="sticker-prop-art" aria-hidden="true">
+            <img src={`${base}assets/stickers/prop-guitar.webp`} alt="" width="1166" height="1196" decoding="async" loading="eager" />
+          </span>
+          <span class="sticker-prop-indicator" aria-hidden="true"></span>
+        </button>
+        <button
+          class="sticker-prop"
+          type="button"
+          aria-label="让角色听音乐"
+          title="听音乐"
+          aria-pressed="false"
+          data-sticker-action="music"
+        >
+          <span class="sticker-prop-art" aria-hidden="true">
+            <img src={`${base}assets/stickers/prop-headphones.webp`} alt="" width="913" height="1208" decoding="async" loading="eager" />
+          </span>
+          <span class="sticker-prop-indicator" aria-hidden="true"></span>
+        </button>
+        <span class="visually-hidden" aria-live="polite" data-sticker-status>当前动作：使用电脑</span>
+      </div>
+
+      <aside
+        class="character-status-bubble"
+        id="character-status-bubble"
+        aria-label="角色动态"
+        aria-live="polite"
+        data-character-bubble
+        hidden
+      >
+        <button class="character-bubble-close" type="button" aria-label="关闭角色动态" data-character-bubble-close>×</button>
+        <span class="eyebrow">ON THE DESK</span>
+        <strong>今天也在把想法做成可运行的东西。</strong>
+        <div class="character-bubble-links">
+          {latestPost && <a href={`${base}posts/${latestPost.id}/`}>最新文章 <span aria-hidden="true">↗</span></a>}
+          <a href="#projects">正在做的项目 <span aria-hidden="true">↓</span></a>
+        </div>
+      </aside>
+    </figure>
+
+    {latestPost && (
+      <a class="hero-log-link" href={`${base}posts/${latestPost.id}/`}>
+        <span class="eyebrow">LATEST JOURNAL</span>
+        <strong>{latestPost.data.title}</strong>
+        <span class="hero-log-arrow" data-magnet aria-hidden="true">↗</span>
+      </a>
+    )}
+  </section>
+
+  <section class="journal-section" id="notes" aria-labelledby="notes-title">
+    <PinnedSticker
+      class="journal-camera-sticker desktop-easter-egg"
+      src="assets/stickers/prop-instant-camera.webp"
+      label="摆动拍立得贴纸"
+      width={1143}
+      height={924}
+      fastener="pin"
+      tone="copper"
+    />
+    <div class="journal-intro">
+      <div data-motion-reveal style="--motion-y: 28px; --motion-duration: 620ms; --motion-order: 0">
+        <p class="eyebrow">LATEST JOURNAL</p>
+        <h2 id="notes-title">最近在想什么</h2>
+      </div>
+      <div class="journal-intro-copy">
+        <a class="text-link" href={`${base}archive/`}>
+          查看全部 {posts.length} 篇 <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="journal-stack">
+      {featuredPosts.map((post, index) => (
+        <article
+          id={`journal-card-${index + 1}`}
+          class="journal-card"
+          data-journal-card
+          style={`--stack-order: ${featuredPosts.length - index}; --stack-x: ${index * 10}px; --stack-angle: ${index % 2 === 0 ? -0.3 : 0.3}deg`}
+        >
+          <button
+            class="journal-card-tab"
+            type="button"
+            aria-label={`展开《${post.data.title}》`}
+            aria-expanded="false"
+            aria-controls={`journal-card-${index + 1}`}
+            data-journal-tab
+          >
+            <span class="journal-card-tab-number">{String(index + 1).padStart(2, "0")}</span>
+            <span class="journal-card-tab-label" data-journal-tab-label>展开</span>
+            <span aria-hidden="true" data-journal-tab-icon>＋</span>
+          </button>
+          <a class="journal-card-link" href={`${base}posts/${post.id}/`}>
+            <div class="journal-card-top">
+              <span class="journal-card-number" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div class="journal-card-meta">
+                <time datetime={post.data.pubDate.toISOString()}>
+                  {dateFormat.format(post.data.pubDate)}
+                </time>
+                {post.data.tags[0] && <span>{post.data.tags[0]}</span>}
+              </div>
+            </div>
+            <figure class:list={["journal-card-cover", !post.data.cover && "is-empty"]}>
+              {post.data.cover ? (
+                <img
+                  src={`${base}${post.data.cover}`}
+                  alt={post.data.coverAlt}
+                  width="1200"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span aria-hidden="true"></span>
+              )}
+            </figure>
+            <div class="journal-card-peek" aria-hidden="true">
+              <span class="journal-card-peek-number">{String(index + 1).padStart(2, "0")}</span>
+              <span class="journal-card-peek-copy">
+                <strong>{post.data.title}</strong>
+                <small>{post.data.description}</small>
+              </span>
+              <span class="journal-card-peek-meta">
+                <span>{post.data.tags[0] ?? "JOURNAL"}</span>
+                <span>{dateFormat.format(post.data.pubDate)}</span>
+              </span>
+            </div>
+            <div class="journal-card-bottom">
+              <div>
+                <h3>{post.data.title}</h3>
+                <p>{post.data.description}</p>
+              </div>
+              <span class="journal-card-arrow" data-magnet aria-hidden="true">↗</span>
+            </div>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="projects-section" id="projects" aria-labelledby="projects-title">
+    <div class="projects-heading" data-motion-reveal style="--motion-order: 0">
+      <p class="eyebrow">SELECTED WORK</p>
+      <h2 id="projects-title">正在做的项目</h2>
+    </div>
+    <ProjectGrid />
+  </section>
+
+  <script>
+    const hero = document.querySelector<HTMLElement>("[data-home-hero]");
+    const header = document.querySelector<HTMLElement>(".site-header");
+
+    if (hero && header) {
+      const headerThemeObserver = new IntersectionObserver(
+        ([entry]) => header.classList.toggle("is-past-hero", !entry.isIntersecting),
+        { threshold: 0, rootMargin: "-72px 0px 0px 0px" },
+      );
+      headerThemeObserver.observe(hero);
+    }
+  </script>
+</BaseLayout>

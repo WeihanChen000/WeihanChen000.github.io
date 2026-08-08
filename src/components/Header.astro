@@ -1,0 +1,16 @@
+---
+const base = import.meta.env.BASE_URL;
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="wordmark" href={base} aria-label="Weihan 首页">W/</a>
+    <nav class="site-nav" aria-label="主导航">
+      <a href={`${base}archive/`}>日志</a>
+      <a href={`${base}#projects`}>项目</a>
+      <a href={`${base}about/`}>关于</a>
+      <a href={`${base}friends/`}>友链</a>
+      <a class="nav-github" href="https://github.com/WeihanChen000" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>

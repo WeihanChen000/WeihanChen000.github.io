@@ -1,0 +1,866 @@
+<canvas class="click-spark-layer" data-click-spark-layer aria-hidden="true"></canvas>
+
+<script>
+  type Spark = {
+    x: number;
+    y: number;
+    angle: number;
+    startTime: number;
+  };
+
+  type StickerState = "work" | "guitar" | "music";
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+  // Astro-native adaptation of React Bits ClickSpark and AnimatedContent.
+  const sparkCanvas = document.querySelector<HTMLCanvasElement>("[data-click-spark-layer]");
+  const sparkContext = sparkCanvas?.getContext("2d");
+  const sparks: Spark[] = [];
+  let sparkFrame = 0;
+  let pixelRatio = 1;
+
+  function resizeSparkCanvas() {
+    if (!sparkCanvas || !sparkContext) return;
+    pixelRatio = Math.min(window.devicePixelRatio, 2);
+    sparkCanvas.width = Math.round(window.innerWidth * pixelRatio);
+    sparkCanvas.height = Math.round(window.innerHeight * pixelRatio);
+    sparkCanvas.style.width = `${window.innerWidth}px`;
+    sparkCanvas.style.height = `${window.innerHeight}px`;
+    sparkContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  }
+
+  function drawSparks(timestamp: number) {
+    if (!sparkContext || !sparkCanvas) return;
+    sparkContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    for (let index = sparks.length - 1; index >= 0; index -= 1) {
+      const spark = sparks[index];
+      const elapsed = timestamp - spark.startTime;
+      const duration = 320;
+      if (elapsed >= duration) {
+        sparks.splice(index, 1);
+        continue;
+      }
+
+      const progress = elapsed / duration;
+      const eased = progress * (2 - progress);
+      const distance = eased * 20;
+      const lineLength = 8 * (1 - eased);
+      const x1 = spark.x + distance * Math.cos(spark.angle);
+      const y1 = spark.y + distance * Math.sin(spark.angle);
+      const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
+      const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
+
+      sparkContext.strokeStyle = "#d68a18";
+      sparkContext.lineWidth = 2;
+      sparkContext.beginPath();
+      sparkContext.moveTo(x1, y1);
+      sparkContext.lineTo(x2, y2);
+      sparkContext.stroke();
+    }
+
+    sparkFrame = sparks.length ? requestAnimationFrame(drawSparks) : 0;
+  }
+
+  if (sparkCanvas && sparkContext) {
+    resizeSparkCanvas();
+    window.addEventListener("resize", resizeSparkCanvas, { passive: true });
+  }
+
+  function createCharacterSparks(event: MouseEvent, target: HTMLElement) {
+    if (
+      !sparkCanvas
+      || !sparkContext
+      || window.innerWidth <= 719
+      || reduceMotion.matches
+      || !finePointer.matches
+    ) return;
+
+    const rect = target.getBoundingClientRect();
+    const fromPointer = event.detail > 0 && event.clientX > 0 && event.clientY > 0;
+    const x = fromPointer ? event.clientX : rect.left + rect.width * 0.56;
+    const y = fromPointer ? event.clientY : rect.top + rect.height * 0.38;
+    const now = performance.now();
+
+    for (let index = 0; index < 6; index += 1) {
+        sparks.push({
+          x,
+          y,
+          angle: (Math.PI * 2 * index) / 6,
+          startTime: now,
+        });
+    }
+    if (!sparkFrame) sparkFrame = requestAnimationFrame(drawSparks);
+  }
+
+  const characterTrigger = document.querySelector<HTMLElement>("[data-character-trigger]");
+  const characterBubble = document.querySelector<HTMLElement>("[data-character-bubble]");
+  const characterBubbleClose = characterBubble?.querySelector<HTMLElement>("[data-character-bubble-close]");
+  let bubbleCloseTimer = 0;
+
+  function setCharacterBubble(open: boolean, restoreFocus = false) {
+    if (!characterTrigger || !characterBubble) return;
+    window.clearTimeout(bubbleCloseTimer);
+    characterTrigger.setAttribute("aria-expanded", String(open));
+
+    if (open) {
+      characterBubble.hidden = false;
+      requestAnimationFrame(() => characterBubble.classList.add("is-open"));
+      return;
+    }
+
+    characterBubble.classList.remove("is-open");
+    bubbleCloseTimer = window.setTimeout(() => {
+      characterBubble.hidden = true;
+    }, reduceMotion.matches ? 0 : 180);
+    if (restoreFocus) characterTrigger.focus();
+  }
+
+  characterTrigger?.addEventListener("click", (event) => {
+    createCharacterSparks(event, characterTrigger);
+    const isOpen = characterTrigger.getAttribute("aria-expanded") === "true";
+    setCharacterBubble(!isOpen);
+  });
+
+  characterTrigger?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    event.preventDefault();
+    characterTrigger.click();
+  });
+
+  characterBubbleClose?.addEventListener("click", () => setCharacterBubble(false, true));
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!characterTrigger || !characterBubble || characterBubble.hidden) return;
+    if (!(event.target instanceof Node)) return;
+    if (characterTrigger.contains(event.target) || characterBubble.contains(event.target)) return;
+    setCharacterBubble(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && characterBubble && !characterBubble.hidden) {
+      setCharacterBubble(false, true);
+    }
+  });
+
+  const stickerStage = document.querySelector<HTMLElement>("[data-sticker-stage]");
+  const stickerPoses = stickerStage
+    ? Array.from(stickerStage.querySelectorAll<HTMLElement>("[data-character-pose]"))
+    : [];
+  const stickerActions = stickerStage
+    ? Array.from(stickerStage.querySelectorAll<HTMLButtonElement>("[data-sticker-action]"))
+    : [];
+  const stickerStatus = stickerStage?.querySelector<HTMLElement>("[data-sticker-status]");
+  const stickerLabels: Record<StickerState, string> = {
+    work: "使用电脑",
+    guitar: "弹吉他",
+    music: "听音乐",
+  };
+  const stickerDurations: Record<StickerState, number> = {
+    work: 740,
+    guitar: 860,
+    music: 820,
+  };
+  let stickerRun = 0;
+  let stickerTimers: number[] = [];
+  const suppressStickerClickUntil = new WeakMap<HTMLButtonElement, number>();
+
+  function clearStickerTimers() {
+    stickerTimers.forEach((timer) => window.clearTimeout(timer));
+    stickerTimers = [];
+  }
+
+  function setStickerPose(state: StickerState) {
+    stickerStage?.setAttribute("data-state", state);
+    stickerPoses.forEach((pose) => {
+      pose.classList.toggle("is-active", pose.dataset.characterPose === state);
+    });
+    stickerActions.forEach((action) => {
+      const isActive = action.dataset.stickerAction === state;
+      action.classList.toggle("is-active", isActive);
+      action.setAttribute("aria-pressed", String(isActive));
+    });
+    const label = stickerLabels[state];
+    if (stickerStatus) stickerStatus.textContent = `当前动作：${label}`;
+    characterTrigger?.setAttribute("aria-label", `打开角色动态，当前正在${label}`);
+  }
+
+  function finishStickerAction(run: number) {
+    if (run !== stickerRun || !stickerStage) return;
+    stickerStage.removeAttribute("data-motion");
+    stickerStage.classList.remove("is-switching");
+    stickerPoses.forEach((pose) => pose.classList.remove("is-entering", "is-performing"));
+    stickerActions.forEach((action) => action.classList.remove("is-performing"));
+  }
+
+  function playStickerAction(state: StickerState, action: HTMLButtonElement) {
+    if (!stickerStage) return;
+    clearStickerTimers();
+    stickerRun += 1;
+    const run = stickerRun;
+    stickerActions.forEach((item) => item.classList.remove("is-performing"));
+    stickerPoses.forEach((pose) => pose.classList.remove("is-entering", "is-performing"));
+
+    if (reduceMotion.matches) {
+      setStickerPose(state);
+      finishStickerAction(run);
+      return;
+    }
+
+    action.classList.add("is-performing");
+    stickerStage.classList.add("is-switching");
+    stickerStage.setAttribute("data-motion", state);
+
+    stickerTimers.push(window.setTimeout(() => {
+      if (run !== stickerRun) return;
+      setStickerPose(state);
+      const activePose = stickerPoses.find((pose) => pose.dataset.characterPose === state);
+      activePose?.classList.add("is-entering", "is-performing");
+      stickerTimers.push(window.setTimeout(() => activePose?.classList.remove("is-entering"), 120));
+    }, 70));
+
+    stickerTimers.push(window.setTimeout(() => finishStickerAction(run), stickerDurations[state]));
+  }
+
+  function stickerDragEnabled(event: PointerEvent) {
+    return event.pointerType !== "touch"
+      && event.button === 0
+      && window.innerWidth > 719
+      && finePointer.matches
+      && !reduceMotion.matches;
+  }
+
+  stickerActions.forEach((action) => {
+    action.addEventListener("click", (event) => {
+      if (performance.now() < (suppressStickerClickUntil.get(action) ?? 0)) {
+        event.preventDefault();
+        return;
+      }
+      const state = action.dataset.stickerAction as StickerState | undefined;
+      if (state) playStickerAction(state, action);
+    });
+
+    action.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      const state = action.dataset.stickerAction as StickerState | undefined;
+      if (state) playStickerAction(state, action);
+    });
+
+    action.addEventListener("pointerdown", (event) => {
+      action.classList.add("is-pressed");
+      if (!stickerDragEnabled(event)) return;
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      let moved = false;
+      action.classList.add("is-dragging");
+      action.setPointerCapture(event.pointerId);
+
+      const move = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== event.pointerId) return;
+        const rawX = moveEvent.clientX - startX;
+        const rawY = moveEvent.clientY - startY;
+        if (Math.hypot(rawX, rawY) > 5) moved = true;
+        const distance = Math.hypot(rawX, rawY) || 1;
+        const scale = Math.min(1, 24 / distance);
+        action.style.setProperty("--drag-x", `${(rawX * scale).toFixed(2)}px`);
+        action.style.setProperty("--drag-y", `${(rawY * scale).toFixed(2)}px`);
+      };
+
+      const release = (releaseEvent: PointerEvent) => {
+        if (releaseEvent.pointerId !== event.pointerId) return;
+        action.removeEventListener("pointermove", move);
+        action.removeEventListener("pointerup", release);
+        action.removeEventListener("pointercancel", release);
+        action.classList.remove("is-dragging", "is-pressed");
+        action.classList.add("is-returning");
+        action.style.setProperty("--drag-x", "0px");
+        action.style.setProperty("--drag-y", "0px");
+        window.setTimeout(() => action.classList.remove("is-returning"), 380);
+        if (moved) suppressStickerClickUntil.set(action, performance.now() + 120);
+      };
+
+      action.addEventListener("pointermove", move);
+      action.addEventListener("pointerup", release);
+      action.addEventListener("pointercancel", release);
+    });
+
+    action.addEventListener("pointerup", () => action.classList.remove("is-pressed"));
+    action.addEventListener("pointercancel", () => action.classList.remove("is-pressed"));
+  });
+
+  reduceMotion.addEventListener("change", () => {
+    clearStickerTimers();
+    finishStickerAction(stickerRun);
+    stickerActions.forEach((action) => {
+      action.classList.remove("is-dragging", "is-returning", "is-pressed");
+      action.style.setProperty("--drag-x", "0px");
+      action.style.setProperty("--drag-y", "0px");
+    });
+  });
+
+  type PinnedStickerMotion = {
+    root: HTMLButtonElement;
+    body: HTMLElement;
+    rotateX: number;
+    rotateY: number;
+    rotateZ: number;
+    velocityX: number;
+    velocityY: number;
+    velocityZ: number;
+    baseRotateX: number;
+    baseRotateY: number;
+    baseRotateZ: number;
+    frame: number;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+    suppressClickUntil: number;
+  };
+
+  const pinnedStickerRoots = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-pinned-sticker]"),
+  );
+  const pinnedStickerStates = pinnedStickerRoots.flatMap<PinnedStickerMotion>((root) => {
+    const body = root.querySelector<HTMLElement>("[data-pinned-sticker-body]");
+    if (!body) return [];
+    return [{
+      root,
+      body,
+      rotateX: 0,
+      rotateY: 0,
+      rotateZ: 0,
+      velocityX: 0,
+      velocityY: 0,
+      velocityZ: 0,
+      baseRotateX: 0,
+      baseRotateY: 0,
+      baseRotateZ: 0,
+      frame: 0,
+      pointerId: -1,
+      startX: 0,
+      startY: 0,
+      moved: false,
+      suppressClickUntil: 0,
+    }];
+  });
+  const cameraStickerAnimations = new WeakMap<HTMLButtonElement, Animation>();
+
+  function applyPinnedStickerMotion(state: PinnedStickerMotion) {
+    state.body.style.setProperty("--pinned-rotate-x", `${state.rotateX.toFixed(2)}deg`);
+    state.body.style.setProperty("--pinned-rotate-y", `${state.rotateY.toFixed(2)}deg`);
+    state.body.style.setProperty("--pinned-rotate-z", `${state.rotateZ.toFixed(2)}deg`);
+  }
+
+  function stopPinnedStickerSpring(state: PinnedStickerMotion) {
+    if (!state.frame) return;
+    cancelAnimationFrame(state.frame);
+    state.frame = 0;
+  }
+
+  function settlePinnedSticker(state: PinnedStickerMotion) {
+    stopPinnedStickerSpring(state);
+    let previousTime = performance.now();
+    const stiffness = 155;
+    const damping = 24;
+
+    const tick = (timestamp: number) => {
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.034);
+      previousTime = timestamp;
+
+      state.velocityX += (-stiffness * state.rotateX - damping * state.velocityX) * delta;
+      state.velocityY += (-stiffness * state.rotateY - damping * state.velocityY) * delta;
+      state.velocityZ += (-stiffness * state.rotateZ - damping * state.velocityZ) * delta;
+      state.rotateX += state.velocityX * delta;
+      state.rotateY += state.velocityY * delta;
+      state.rotateZ += state.velocityZ * delta;
+      applyPinnedStickerMotion(state);
+
+      const atRest =
+        Math.abs(state.rotateX) < 0.025
+        && Math.abs(state.rotateY) < 0.025
+        && Math.abs(state.rotateZ) < 0.025
+        && Math.abs(state.velocityX) < 0.08
+        && Math.abs(state.velocityY) < 0.08
+        && Math.abs(state.velocityZ) < 0.08;
+
+      if (atRest) {
+        state.rotateX = 0;
+        state.rotateY = 0;
+        state.rotateZ = 0;
+        state.velocityX = 0;
+        state.velocityY = 0;
+        state.velocityZ = 0;
+        state.frame = 0;
+        state.root.classList.remove("is-wobbling");
+        applyPinnedStickerMotion(state);
+        return;
+      }
+
+      state.frame = requestAnimationFrame(tick);
+    };
+
+    state.root.classList.add("is-wobbling");
+    state.frame = requestAnimationFrame(tick);
+  }
+
+  function cameraStickerTransform(
+    rotateX: number,
+    rotateY: number,
+    rotateZ: number,
+    scale = 1,
+  ) {
+    return `perspective(760px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(calc(var(--pinned-rest-rotate-z) + ${rotateZ}deg)) scale(${scale})`;
+  }
+
+  function stopCameraStickerSequence(state: PinnedStickerMotion) {
+    const animation = cameraStickerAnimations.get(state.root);
+    if (animation) animation.cancel();
+    cameraStickerAnimations.delete(state.root);
+    state.root.classList.remove("is-wobbling");
+  }
+
+  function playCameraStickerSequence(state: PinnedStickerMotion, mode: "hover" | "click") {
+    const startTransform = getComputedStyle(state.body).transform;
+    stopPinnedStickerSpring(state);
+    stopCameraStickerSequence(state);
+    state.rotateX = 0;
+    state.rotateY = 0;
+    state.rotateZ = 0;
+    state.velocityX = 0;
+    state.velocityY = 0;
+    state.velocityZ = 0;
+    applyPinnedStickerMotion(state);
+
+    const isClick = mode === "click";
+    const frames: Keyframe[] = isClick
+      ? [
+          { offset: 0, transform: startTransform },
+          { offset: 0.1, transform: cameraStickerTransform(-1.4, -1.1, -2.6, 0.99) },
+          { offset: 0.28, transform: cameraStickerTransform(1.8, 1.45, 5.4, 1.015) },
+          { offset: 0.46, transform: cameraStickerTransform(-1.15, -0.9, -3.5, 0.995) },
+          { offset: 0.64, transform: cameraStickerTransform(0.7, 0.55, 2.05, 1.006) },
+          { offset: 0.8, transform: cameraStickerTransform(-0.35, -0.25, -0.95, 0.998) },
+          { offset: 0.92, transform: cameraStickerTransform(0.12, 0.1, 0.34) },
+          { offset: 1, transform: cameraStickerTransform(0, 0, 0) },
+        ]
+      : [
+          { offset: 0, transform: startTransform },
+          { offset: 0.14, transform: cameraStickerTransform(-0.9, -0.7, -1.7, 0.994) },
+          { offset: 0.38, transform: cameraStickerTransform(1.25, 1, 3.9, 1.01) },
+          { offset: 0.6, transform: cameraStickerTransform(-0.7, -0.55, -2.15, 0.997) },
+          { offset: 0.78, transform: cameraStickerTransform(0.32, 0.25, 0.95, 1.003) },
+          { offset: 0.91, transform: cameraStickerTransform(-0.1, -0.08, -0.28) },
+          { offset: 1, transform: cameraStickerTransform(0, 0, 0) },
+        ];
+
+    state.root.classList.add("is-wobbling");
+    const animation = state.body.animate(frames, {
+      duration: isClick ? 760 : 620,
+      easing: "linear",
+      fill: "none",
+    });
+    cameraStickerAnimations.set(state.root, animation);
+    animation.onfinish = () => {
+      if (cameraStickerAnimations.get(state.root) !== animation) return;
+      cameraStickerAnimations.delete(state.root);
+      state.root.classList.remove("is-wobbling");
+      applyPinnedStickerMotion(state);
+    };
+  }
+
+  function pinnedStickerDragEnabled(event: PointerEvent) {
+    return event.button === 0
+      && event.pointerType !== "touch"
+      && window.innerWidth > 719
+      && finePointer.matches
+      && !reduceMotion.matches;
+  }
+
+  pinnedStickerStates.forEach((state, index) => {
+    const { root } = state;
+
+    root.addEventListener("pointerenter", (event) => {
+      if (
+        event.pointerType === "touch"
+        || !finePointer.matches
+        || reduceMotion.matches
+        || state.pointerId !== -1
+      ) return;
+
+      if (root.classList.contains("journal-camera-sticker")) {
+        playCameraStickerSequence(state, "hover");
+        return;
+      }
+
+      const direction = index % 2 === 0 ? -1 : 1;
+      const emphasis = 1;
+      stopPinnedStickerSpring(state);
+      state.rotateX = -0.7 * emphasis;
+      state.rotateY = direction * 0.45 * emphasis;
+      state.rotateZ = direction * 1.65 * emphasis;
+      state.velocityX = 8 * emphasis;
+      state.velocityY = -direction * 5 * emphasis;
+      state.velocityZ = -direction * 17 * emphasis;
+      applyPinnedStickerMotion(state);
+      settlePinnedSticker(state);
+    });
+
+    root.addEventListener("click", (event) => {
+      if (performance.now() < state.suppressClickUntil) {
+        event.preventDefault();
+        return;
+      }
+      if (reduceMotion.matches) return;
+
+      if (root.classList.contains("journal-camera-sticker")) {
+        playCameraStickerSequence(state, "click");
+        return;
+      }
+
+      const direction = index % 2 === 0 ? -1 : 1;
+      const emphasis = 1;
+      stopPinnedStickerSpring(state);
+      state.rotateX = -1.15 * emphasis;
+      state.rotateY = direction * 0.75 * emphasis;
+      state.rotateZ = direction * 2.35 * emphasis;
+      state.velocityX = 11 * emphasis;
+      state.velocityY = -direction * 7 * emphasis;
+      state.velocityZ = -direction * 24 * emphasis;
+      applyPinnedStickerMotion(state);
+      settlePinnedSticker(state);
+    });
+
+    root.addEventListener("pointerdown", (event) => {
+      root.classList.add("is-pressed");
+      if (root.classList.contains("journal-camera-sticker")) {
+        stopCameraStickerSequence(state);
+      }
+      if (!pinnedStickerDragEnabled(event)) return;
+
+      stopPinnedStickerSpring(state);
+      state.pointerId = event.pointerId;
+      state.startX = event.clientX;
+      state.startY = event.clientY;
+      state.baseRotateX = state.rotateX;
+      state.baseRotateY = state.rotateY;
+      state.baseRotateZ = state.rotateZ;
+      state.velocityX = 0;
+      state.velocityY = 0;
+      state.velocityZ = 0;
+      state.moved = false;
+      root.classList.add("is-dragging");
+      root.setPointerCapture(event.pointerId);
+    });
+
+    root.addEventListener("pointermove", (event) => {
+      if (state.pointerId !== event.pointerId) return;
+      const rawX = event.clientX - state.startX;
+      const rawY = event.clientY - state.startY;
+      const distance = Math.hypot(rawX, rawY);
+      if (distance > 4) state.moved = true;
+
+      const limitedDistance = Math.min(distance, 20);
+      const scale = distance > 0 ? limitedDistance / distance : 0;
+      const x = rawX * scale;
+      const y = rawY * scale;
+      const maxPinnedTilt = root.classList.contains("archive-books-sticker") ? 3 : 5;
+      state.rotateX = Math.max(-maxPinnedTilt, Math.min(maxPinnedTilt, state.baseRotateX - (y / 20) * 3.2));
+      state.rotateY = Math.max(-3, Math.min(3, state.baseRotateY + (x / 20) * 1.8));
+      state.rotateZ = Math.max(-maxPinnedTilt, Math.min(maxPinnedTilt, state.baseRotateZ + (x / 20) * 4.8));
+      applyPinnedStickerMotion(state);
+    });
+
+    const releasePinnedSticker = (event: PointerEvent) => {
+      root.classList.remove("is-pressed");
+      if (state.pointerId !== event.pointerId) return;
+      if (root.hasPointerCapture(event.pointerId)) root.releasePointerCapture(event.pointerId);
+      root.classList.remove("is-dragging");
+      state.pointerId = -1;
+      if (state.moved) state.suppressClickUntil = performance.now() + 220;
+      settlePinnedSticker(state);
+    };
+
+    root.addEventListener("pointerup", releasePinnedSticker);
+    root.addEventListener("pointercancel", releasePinnedSticker);
+    root.addEventListener("pointerleave", () => {
+      if (state.pointerId === -1) root.classList.remove("is-pressed");
+    });
+  });
+
+  reduceMotion.addEventListener("change", () => {
+    pinnedStickerStates.forEach((state) => {
+      stopPinnedStickerSpring(state);
+      state.rotateX = 0;
+      state.rotateY = 0;
+      state.rotateZ = 0;
+      state.velocityX = 0;
+      state.velocityY = 0;
+      state.velocityZ = 0;
+      state.pointerId = -1;
+      state.root.classList.remove("is-pressed", "is-dragging", "is-wobbling");
+      applyPinnedStickerMotion(state);
+    });
+  });
+
+  const revealItems = Array.from(document.querySelectorAll<HTMLElement>("[data-motion-reveal]"));
+  if (revealItems.length && !reduceMotion.matches && "IntersectionObserver" in window) {
+    document.documentElement.classList.add("motion-ready");
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-revealed");
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
+
+    revealItems.forEach((item) => revealObserver.observe(item));
+  } else {
+    revealItems.forEach((item) => item.classList.add("is-revealed"));
+  }
+
+  type MagnetState = {
+    element: HTMLElement;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    scale: number;
+    targetScale: number;
+  };
+
+  const magnets = Array.from(document.querySelectorAll<HTMLElement>("[data-magnet]"));
+  const magnetStates = magnets.map<MagnetState>((element) => ({
+    element,
+    x: 0,
+    y: 0,
+    targetX: 0,
+    targetY: 0,
+    scale: 1,
+    targetScale: 1,
+  }));
+  let pointerX = -1000;
+  let pointerY = -1000;
+  let magnetFrame = 0;
+  let lastMagnetTime = performance.now();
+
+  function scheduleMagnets() {
+    if (
+      !magnetFrame
+      && window.innerWidth > 719
+      && finePointer.matches
+      && !reduceMotion.matches
+    ) {
+      lastMagnetTime = performance.now();
+      magnetFrame = requestAnimationFrame(updateMagnets);
+    }
+  }
+
+  function updateMagnets(timestamp: number) {
+    magnetFrame = 0;
+    const delta = Math.min((timestamp - lastMagnetTime) / 1000, 0.05);
+    lastMagnetTime = timestamp;
+    const smoothing = 1 - Math.exp(-12 * delta);
+    let unsettled = false;
+
+    magnetStates.forEach((state) => {
+      const rect = state.element.getBoundingClientRect();
+      const dx = pointerX - (rect.left + rect.width / 2);
+      const dy = pointerY - (rect.top + rect.height / 2);
+      const distance = Math.hypot(dx, dy);
+      const active = distance <= 48;
+      state.targetX = active ? Math.max(-6, Math.min(6, (dx / 48) * 6)) : 0;
+      state.targetY = active ? Math.max(-6, Math.min(6, (dy / 48) * 6)) : 0;
+      state.x += (state.targetX - state.x) * smoothing;
+      state.y += (state.targetY - state.y) * smoothing;
+      state.scale += (state.targetScale - state.scale) * smoothing;
+      state.element.style.transform = `translate3d(${state.x.toFixed(2)}px, ${state.y.toFixed(2)}px, 0) scale(${state.scale.toFixed(3)})`;
+      state.element.toggleAttribute("data-magnet-active", active);
+
+      if (
+        Math.abs(state.targetX - state.x) > 0.02
+        || Math.abs(state.targetY - state.y) > 0.02
+        || Math.abs(state.targetScale - state.scale) > 0.002
+      ) unsettled = true;
+    });
+
+    if (unsettled) magnetFrame = requestAnimationFrame(updateMagnets);
+  }
+
+  if (
+    magnetStates.length
+    && window.innerWidth > 719
+    && finePointer.matches
+    && !reduceMotion.matches
+  ) {
+    document.addEventListener("pointermove", (event) => {
+      if (event.pointerType === "touch") return;
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      scheduleMagnets();
+    }, { passive: true });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const magnet = event.target.closest<HTMLElement>("[data-magnet]");
+      const state = magnetStates.find((candidate) => candidate.element === magnet);
+      if (!state) return;
+      state.targetScale = 0.97;
+      scheduleMagnets();
+    });
+
+    const releaseMagnets = () => {
+      magnetStates.forEach((state) => { state.targetScale = 1; });
+      scheduleMagnets();
+    };
+
+    document.addEventListener("pointerup", releaseMagnets, { passive: true });
+    document.addEventListener("pointercancel", releaseMagnets, { passive: true });
+    window.addEventListener("scroll", scheduleMagnets, { passive: true });
+    document.documentElement.addEventListener("pointerleave", () => {
+      pointerX = -1000;
+      pointerY = -1000;
+      scheduleMagnets();
+    });
+  }
+
+  const journalStack = document.querySelector<HTMLElement>(".journal-stack");
+  const journalCards = journalStack
+    ? Array.from(journalStack.querySelectorAll<HTMLElement>("[data-journal-card]"))
+    : [];
+  let selectedJournalCard: HTMLElement | null = null;
+
+  function journalDeckEnabled() {
+    return window.innerWidth > 719 && finePointer.matches && !reduceMotion.matches;
+  }
+
+  function clearJournalDeck() {
+    selectedJournalCard = null;
+    journalStack?.removeAttribute("data-deck-active");
+    journalCards.forEach((card) => {
+      card.classList.remove("is-deck-selected");
+      card.removeAttribute("data-deck-side");
+      const tab = card.querySelector<HTMLButtonElement>("[data-journal-tab]");
+      tab?.setAttribute("aria-expanded", "false");
+      const label = tab?.querySelector<HTMLElement>("[data-journal-tab-label]");
+      if (label) label.textContent = "展开";
+      const icon = tab?.querySelector<HTMLElement>("[data-journal-tab-icon]");
+      if (icon) icon.textContent = "＋";
+    });
+  }
+
+  function selectJournalCard(selectedCard: HTMLElement) {
+    if (!journalStack || !journalDeckEnabled() || selectedJournalCard === selectedCard) return;
+    const selectedIndex = journalCards.indexOf(selectedCard);
+    if (selectedIndex < 0) return;
+
+    selectedJournalCard = selectedCard;
+    journalStack.setAttribute("data-deck-active", "");
+
+    journalCards.forEach((card, index) => {
+      const isSelected = card === selectedCard;
+      card.classList.toggle("is-deck-selected", isSelected);
+      const tab = card.querySelector<HTMLButtonElement>("[data-journal-tab]");
+      tab?.setAttribute("aria-expanded", String(isSelected));
+      const label = tab?.querySelector<HTMLElement>("[data-journal-tab-label]");
+      if (label) label.textContent = isSelected ? "收起" : "展开";
+      const icon = tab?.querySelector<HTMLElement>("[data-journal-tab-icon]");
+      if (icon) icon.textContent = isSelected ? "－" : "＋";
+      if (isSelected) {
+        card.removeAttribute("data-deck-side");
+      } else {
+        card.setAttribute("data-deck-side", index < selectedIndex ? "above" : "below");
+      }
+    });
+  }
+
+  if (journalStack && journalCards.length) {
+    journalCards.forEach((card) => {
+      const tab = card.querySelector<HTMLButtonElement>("[data-journal-tab]");
+      tab?.addEventListener("click", () => {
+        if (selectedJournalCard === card) clearJournalDeck();
+        else selectJournalCard(card);
+      });
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!selectedJournalCard || !(event.target instanceof Node)) return;
+      if (!journalStack.contains(event.target)) clearJournalDeck();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && selectedJournalCard) clearJournalDeck();
+    });
+
+    const resetJournalDeck = () => {
+      if (!journalDeckEnabled()) clearJournalDeck();
+    };
+    window.addEventListener("resize", resetJournalDeck, { passive: true });
+    reduceMotion.addEventListener("change", resetJournalDeck);
+    finePointer.addEventListener("change", resetJournalDeck);
+  }
+
+  const editorialFocus = document.querySelector<HTMLElement>("[data-editorial-focus]");
+  const editorialLines = Array.from(document.querySelectorAll<HTMLElement>("[data-editorial-line]"));
+  let narrativeFrame = 0;
+
+  function narrativeMotionEnabled() {
+    return window.innerWidth > 719 && finePointer.matches && !reduceMotion.matches;
+  }
+
+  function updateNarrativeMotion() {
+    narrativeFrame = 0;
+    const enabled = narrativeMotionEnabled();
+
+    if (editorialFocus && editorialLines.length) {
+      editorialFocus.classList.toggle("has-focus-motion", enabled);
+      if (enabled) {
+        const viewportCenter = window.innerHeight * 0.5;
+        let nearest = editorialLines[0];
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        editorialLines.forEach((line) => {
+          const rect = line.getBoundingClientRect();
+          const distance = Math.abs(rect.top + rect.height * 0.5 - viewportCenter);
+          if (distance < nearestDistance) {
+            nearest = line;
+            nearestDistance = distance;
+          }
+        });
+        editorialLines.forEach((line) => line.classList.toggle("is-current", line === nearest));
+      } else {
+        editorialLines.forEach((line) => line.classList.add("is-current"));
+      }
+    }
+  }
+
+  function scheduleNarrativeMotion() {
+    if (!narrativeFrame) narrativeFrame = requestAnimationFrame(updateNarrativeMotion);
+  }
+
+  if (editorialFocus) {
+    scheduleNarrativeMotion();
+    window.addEventListener("scroll", scheduleNarrativeMotion, { passive: true });
+    window.addEventListener("resize", scheduleNarrativeMotion, { passive: true });
+    reduceMotion.addEventListener("change", scheduleNarrativeMotion);
+    finePointer.addEventListener("change", scheduleNarrativeMotion);
+  }
+</script>
+
+<style>
+  .click-spark-layer {
+    position: fixed;
+    z-index: 12;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  [data-magnet] {
+    transform-origin: center;
+    will-change: transform;
+  }
+</style>

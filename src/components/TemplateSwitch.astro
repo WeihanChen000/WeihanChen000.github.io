@@ -1,0 +1,39 @@
+<div class="template-switch" aria-label="版式选择">
+  <button type="button" data-template-value="index" aria-pressed="true">
+    <span class="template-swatch swatch-index" aria-hidden="true"></span>
+    索引
+  </button>
+  <button type="button" data-template-value="notes" aria-pressed="false">
+    <span class="template-swatch swatch-notes" aria-hidden="true"></span>
+    手记
+  </button>
+  <button type="button" data-template-value="signal" aria-pressed="false">
+    <span class="template-swatch swatch-signal" aria-hidden="true"></span>
+    信号
+  </button>
+</div>
+
+<script is:inline>
+  (() => {
+    const buttons = document.querySelectorAll("[data-template-value]");
+    const sync = (value) => {
+      document.documentElement.dataset.template = value;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute(
+        "content",
+        value === "signal" ? "#1c1a17" : value === "notes" ? "#f0f2ec" : "#1546d2"
+      );
+      buttons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.templateValue === value));
+      });
+    };
+
+    sync(document.documentElement.dataset.template || "index");
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.templateValue;
+        localStorage.setItem("weihan-blog-template", value);
+        sync(value);
+      });
+    });
+  })();
+</script>

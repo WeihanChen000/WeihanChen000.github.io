@@ -1,0 +1,44 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import "../styles/friends.css";
+
+const friends = [
+  {
+    name: "Flurry's Blog",
+    url: "https://blog.flurry.top/",
+    displayUrl: "blog.flurry.top",
+  },
+];
+
+const getInitial = (name: string) => name.trim().charAt(0).toUpperCase();
+---
+
+<BaseLayout
+  bodyClass="friends-page"
+  title="友链"
+  description="Weihan Chen 的友链目录，收藏持续记录技术、创作与生活的个人网站。"
+>
+  <section class="link-directory" aria-label="友链列表">
+    <header class="friend-heading">
+      <h1>友链</h1>
+    </header>
+    <div class="friend-files">
+      {friends.map((friend) => (
+        <a
+          class="friend-file"
+          href={friend.url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`访问 ${friend.name}`}
+        >
+          <span class="friend-file-initial" aria-hidden="true">{getInitial(friend.name)}</span>
+          <div class="friend-file-name">
+            <h2>{friend.name}</h2>
+          </div>
+          <small>{friend.displayUrl}</small>
+          <span class="friend-file-arrow" aria-hidden="true">↗</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

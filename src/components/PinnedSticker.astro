@@ -1,0 +1,51 @@
+---
+interface Props {
+  src: string;
+  label: string;
+  width: number;
+  height: number;
+  class?: string;
+  fastener?: "magnet" | "pin" | "tape";
+  tone?: "carbon" | "steel" | "copper";
+  loading?: "eager" | "lazy";
+}
+
+const {
+  src,
+  label,
+  width,
+  height,
+  class: className = "",
+  fastener = "pin",
+  tone = "copper",
+  loading = "lazy",
+} = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<button
+  class:list={[
+    "pinned-sticker",
+    `pinned-sticker--${fastener}`,
+    `pinned-sticker--${tone}`,
+    className,
+  ]}
+  type="button"
+  aria-label={label}
+  title={label}
+  data-pinned-sticker
+  style={`--sticker-aspect: ${width} / ${height}`}
+>
+  <span class="pinned-sticker-body" data-pinned-sticker-body aria-hidden="true">
+    <img
+      src={`${base}${src}`}
+      alt=""
+      width={width}
+      height={height}
+      loading={loading}
+      decoding="async"
+      draggable="false"
+    />
+  </span>
+  <span class="pinned-sticker-fastener" aria-hidden="true"></span>
+</button>

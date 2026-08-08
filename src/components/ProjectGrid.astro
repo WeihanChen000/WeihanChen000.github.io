@@ -1,0 +1,99 @@
+---
+const projects = [
+  {
+    index: "01",
+    name: "B站学习模式",
+    type: "浏览器扩展 / Windows",
+    description: "把课程收藏夹变成安静、可持续的学习工作区。",
+    stack: "Extension · Local-first",
+    href: "https://github.com/WeihanChen000/bilibili-study-mode",
+  },
+  {
+    index: "02",
+    name: "随身语言小站",
+    type: "桌面工具 / Python",
+    description: "陪伴英语抽背与粤语练习的本地桌宠。",
+    stack: "Python · Desktop",
+    href: "https://github.com/WeihanChen000/usagi-language-pet",
+  },
+  {
+    index: "03",
+    name: "AI 笔记整理",
+    type: "B站学习模式 / 模块",
+    description: "让课程问题和笔记留在同一条学习流程里。",
+    stack: "JavaScript · Local-first",
+    href: "https://github.com/WeihanChen000/bilibili-study-mode",
+  },
+  {
+    index: "04",
+    name: "每日学习总结",
+    type: "B站学习模式 / 模块",
+    description: "把分集进度和当日笔记收成一页记录。",
+    stack: "JavaScript · Extension",
+    href: "https://github.com/WeihanChen000/bilibili-study-mode",
+  },
+  {
+    index: "05",
+    name: "英语抽背",
+    type: "随身语言小站 / 模块",
+    description: "本地运行的短时抽背与复习流程。",
+    stack: "Python · Desktop",
+    href: "https://github.com/WeihanChen000/usagi-language-pet",
+  },
+  {
+    index: "06",
+    name: "粤语练习",
+    type: "随身语言小站 / 模块",
+    description: "用桌宠承载可重复的日常发音练习。",
+    stack: "Python · Local-first",
+    href: "https://github.com/WeihanChen000/usagi-language-pet",
+  },
+];
+
+const collagePositions = [
+  { x: "0%", y: "0px", rotate: "-1.4deg" },
+  { x: "-8%", y: "28px", rotate: "-0.55deg" },
+  { x: "6%", y: "-18px", rotate: "-1.9deg" },
+  { x: "-3%", y: "-4px", rotate: "-1.8deg" },
+  { x: "-2%", y: "-22px", rotate: "-1.1deg" },
+  { x: "-9%", y: "-10px", rotate: "-0.7deg" },
+];
+---
+
+<div class="project-listing">
+  <div class="project-wall">
+    <div class="project-index" aria-label="项目拼贴墙">
+      {projects.map((project, index) => {
+        const position = collagePositions[index % collagePositions.length];
+        return (
+          <div
+            class="project-note-slot"
+            data-motion-reveal
+            style={`--motion-order: ${index}; --collage-x: ${position.x}; --collage-y: ${position.y}; --collage-rotate: ${position.rotate}; --collage-z: ${projects.length - index}`}
+          >
+            <span class="project-note-pin" aria-hidden="true"></span>
+            <div class="project-note-offset">
+              <div class="project-note-breeze">
+                <a
+                  class="project-row project-note"
+                  href={project.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span class="project-number" aria-hidden="true">{project.index}</span>
+                  <div class="project-title">
+                    <span>{project.type}</span>
+                    <h3>{project.name}</h3>
+                  </div>
+                  <p>{project.description}</p>
+                  <span class="project-stack">{project.stack}</span>
+                  <span class="project-arrow" data-magnet aria-hidden="true">↗</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</div>

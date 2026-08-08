@@ -1,0 +1,32 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PinnedSticker from "../components/PinnedSticker.astro";
+---
+
+<BaseLayout title="关于我" description="关于我与这个开发日志。">
+  <article class="about-page">
+    <header class="about-heading">
+      <h1>关于我</h1>
+      <PinnedSticker
+        class="about-plush-sticker"
+        src="assets/stickers/sheep-plush.webp"
+        label="摆动羊毛绒娃娃贴纸"
+        width={859}
+        height={1475}
+        fastener="tape"
+        tone="copper"
+      />
+    </header>
+    <div class="about-columns prose">
+      <section>
+        <h2>这个博客写什么</h2>
+        <p>记录角色与网页 AI 工作流 学习工具和桌面应用从想法到可用版本的过程</p>
+      </section>
+      <section class="about-contact-section">
+        <h2>在哪里找到我</h2>
+        <p>代码和公开项目都放在 GitHub</p>
+        <p class="about-contact-note"><a href="https://github.com/WeihanChen000">github.com/WeihanChen000 &nearr;</a></p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>

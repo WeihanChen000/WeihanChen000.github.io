@@ -1,0 +1,591 @@
+---
+const base = import.meta.env.BASE_URL;
+const modelUrl = `${base}assets/character/streetwear-character.glb`;
+const fallbackUrl = `${base}assets/character/character-fallback.webp`;
+---
+
+<div
+  class="character-stage"
+  data-character-stage
+  data-model-url={modelUrl}
+  aria-label="Weihan 的潮流羊角色"
+>
+  <canvas aria-hidden="true"></canvas>
+  <img
+    class="character-fallback"
+    src={fallbackUrl}
+    alt="戴反帽、眼镜和耳机的潮流羊角色"
+    width="300"
+    height="630"
+  />
+  <button
+    class="character-hit"
+    type="button"
+    aria-label="和角色打个招呼"
+    data-character-hit
+    data-react-bits-click-spark
+  ></button>
+  <p class="character-dialogue" aria-live="polite" data-character-dialogue>
+    今晚先把一个想法做完。
+  </p>
+  <span class="character-load" aria-hidden="true"><i></i></span>
+</div>
+
+<script>
+  import type * as ThreeTypes from "three";
+
+  type CharacterActionName = "greet" | "think" | "pose" | "dance";
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean };
+  }).connection;
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+
+  document.querySelectorAll<HTMLElement>("[data-character-stage]").forEach(async (stage) => {
+    const canvas = stage.querySelector<HTMLCanvasElement>("canvas");
+    const hit = stage.querySelector<HTMLButtonElement>("[data-character-hit]");
+    const dialogue = stage.querySelector<HTMLElement>("[data-character-dialogue]");
+    const loadLine = stage.querySelector<HTMLElement>(".character-load i");
+    const hero = stage.closest(".hero") as HTMLElement | null;
+    const modelUrl = stage.dataset.modelUrl;
+    if (!canvas || !hit || !dialogue || !modelUrl || !hero) return;
+
+    const actionButtons = Array.from(
+      hero.querySelectorAll<HTMLButtonElement>("[data-character-action]"),
+    );
+    const useFallback = () => {
+      stage.classList.add("is-fallback");
+      hero.classList.add("has-character-fallback");
+      actionButtons.forEach((button) => { button.disabled = true; });
+    };
+
+    const isSmallScreen = window.matchMedia("(max-width: 719px)").matches;
+    const hasFinePointer = window.matchMedia("(pointer: fine)").matches;
+    const canUse3D = !reduceMotion.matches
+      && !connection?.saveData
+      && (!isSmallScreen || deviceMemory >= 6);
+
+    if (!canUse3D) {
+      useFallback();
+      return;
+    }
+
+    const THREE = await import("three");
+    const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+
+    let renderer: ThreeTypes.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+    } catch {
+      useFallback();
+      return;
+    }
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(27, 1, 0.1, 100);
+    camera.position.set(0, 0.15, 11.8);
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.HemisphereLight(0xfff4e7, 0x121214, 2.15));
+
+    const keyLight = new THREE.DirectionalLight(0xfff2df, 4.2);
+    keyLight.position.set(4.5, 7, 7);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 1.4);
+    fillLight.position.set(-4, 2, 5);
+    scene.add(fillLight);
+
+    const amberLight = new THREE.PointLight(0xd68a18, 18, 16, 2);
+    amberLight.position.set(4, 1, 3);
+    scene.add(amberLight);
+
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(2.1, 48),
+      new THREE.ShadowMaterial({ color: 0x050506, opacity: 0.34 }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = isSmallScreen ? -2.42 : -2.76;
+    shadow.receiveShadow = true;
+    scene.add(shadow);
+
+    const pointer = new THREE.Vector2();
+    const smoothPointer = new THREE.Vector2();
+    const clock = new THREE.Clock();
+    let character: ThreeTypes.Object3D | null = null;
+    let head: ThreeTypes.Object3D | null = null;
+    let eyeLeft: ThreeTypes.Object3D | null = null;
+    let eyeRight: ThreeTypes.Object3D | null = null;
+    let earLeft: ThreeTypes.Object3D | null = null;
+    let earRight: ThreeTypes.Object3D | null = null;
+    let pendant: ThreeTypes.Object3D | null = null;
+    let headBase: ThreeTypes.Euler | null = null;
+    let eyeLeftBase: ThreeTypes.Vector3 | null = null;
+    let eyeRightBase: ThreeTypes.Vector3 | null = null;
+    let earLeftBase: ThreeTypes.Euler | null = null;
+    let earRightBase: ThreeTypes.Euler | null = null;
+    let reactionUntil = 0;
+    let visible = true;
+    let mixer: ThreeTypes.AnimationMixer | null = null;
+    let idleClipAction: ThreeTypes.AnimationAction | null = null;
+    let activeClipAction: ThreeTypes.AnimationAction | null = null;
+    let activeAction: CharacterActionName | null = null;
+    let actionStartedAt = 0;
+    let actionDuration = 0;
+
+    const actionDurations: Record<CharacterActionName, number> = {
+      greet: 1.45,
+      think: 2.35,
+      pose: 1.9,
+      dance: 2.55,
+    };
+    const actionMessages: Record<CharacterActionName, string> = {
+      greet: "你好，今天也做点新的。",
+      think: "这个问题，值得再拆一层。",
+      pose: "先站稳，再把态度放进去。",
+      dance: "完成一小步，也值得庆祝。",
+    };
+    const clipActions = new Map<string, ThreeTypes.AnimationAction>();
+
+    new GLTFLoader().load(
+      modelUrl,
+      (gltf) => {
+        const model = gltf.scene;
+        model.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.castShadow = true;
+            object.receiveShadow = true;
+          }
+        });
+
+        const initialBox = new THREE.Box3().setFromObject(model);
+        const initialSize = initialBox.getSize(new THREE.Vector3());
+        const modelScale = (isSmallScreen ? 4.55 : 5.25) / initialSize.y;
+        model.scale.setScalar(modelScale);
+
+        const centeredBox = new THREE.Box3().setFromObject(model);
+        const center = centeredBox.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+
+        character = new THREE.Group();
+        character.add(model);
+        character.position.set(0, -0.08, 0);
+        character.rotation.y = 0.08;
+        scene.add(character);
+
+        if (gltf.animations.length) {
+          mixer = new THREE.AnimationMixer(model);
+          gltf.animations.forEach((clip) => {
+            clipActions.set(clip.name.trim().toLowerCase(), mixer!.clipAction(clip));
+          });
+          idleClipAction = clipActions.get("idle") || null;
+          idleClipAction?.reset().fadeIn(0.2).play();
+        }
+
+        head = character.getObjectByName("HeadRig") || null;
+        eyeLeft = character.getObjectByName("EyeRig_L") || null;
+        eyeRight = character.getObjectByName("EyeRig_R") || null;
+        earLeft = character.getObjectByName("EarRig_L") || null;
+        earRight = character.getObjectByName("EarRig_R") || null;
+        pendant = character.getObjectByName("PendantRig") || null;
+        headBase = head?.rotation.clone() || null;
+        eyeLeftBase = eyeLeft?.position.clone() || null;
+        eyeRightBase = eyeRight?.position.clone() || null;
+        earLeftBase = earLeft?.rotation.clone() || null;
+        earRightBase = earRight?.rotation.clone() || null;
+
+        stage.classList.add("is-ready");
+        actionButtons.forEach((button) => { button.disabled = false; });
+        if (loadLine) loadLine.style.width = "100%";
+        resize();
+      },
+      (event) => {
+        if (loadLine && event.total) {
+          loadLine.style.width = `${Math.round((event.loaded / event.total) * 100)}%`;
+        }
+      },
+      () => useFallback(),
+    );
+
+    const phrases = [
+      "今晚先把一个想法做完。",
+      "文章在下面，我负责开场。",
+      "先看过程，再看答案。",
+      "这次，从角色开始。",
+    ];
+    let phraseIndex = 0;
+    let dialogueTimer = 0;
+
+    function showDialogue(message: string) {
+      dialogue!.textContent = message;
+      stage.classList.add("is-talking");
+      window.clearTimeout(dialogueTimer);
+      dialogueTimer = window.setTimeout(() => stage.classList.remove("is-talking"), 2400);
+    }
+
+    function finishAction() {
+      activeClipAction?.fadeOut(0.16);
+      activeClipAction = null;
+      if (idleClipAction) idleClipAction.reset().fadeIn(0.18).play();
+      activeAction = null;
+      actionButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+    }
+
+    function startAction(name: CharacterActionName, message = actionMessages[name]) {
+      activeClipAction?.fadeOut(0.12);
+      idleClipAction?.fadeOut(0.12);
+
+      activeAction = name;
+      actionStartedAt = clock.elapsedTime;
+      actionDuration = actionDurations[name];
+      const clipAction = clipActions.get(name) || null;
+      if (clipAction) {
+        clipAction.reset();
+        clipAction.setLoop(THREE.LoopOnce, 1);
+        clipAction.clampWhenFinished = false;
+        clipAction.fadeIn(0.14).play();
+        activeClipAction = clipAction;
+        actionDuration = Math.max(0.2, clipAction.getClip().duration);
+      } else {
+        activeClipAction = null;
+      }
+
+      actionButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.characterAction === name));
+      });
+      showDialogue(message);
+    }
+
+    actionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const name = button.dataset.characterAction;
+        if (name === "greet" || name === "think" || name === "pose" || name === "dance") {
+          startAction(name);
+        }
+      });
+    });
+
+    hit.addEventListener("pointerdown", () => stage.classList.add("is-pressed"));
+    hit.addEventListener("pointerup", () => stage.classList.remove("is-pressed"));
+    hit.addEventListener("pointercancel", () => stage.classList.remove("is-pressed"));
+    hit.addEventListener("click", (event) => {
+      if (event.detail > 0) hit.blur();
+      phraseIndex = (phraseIndex + 1) % phrases.length;
+      startAction("greet", phrases[phraseIndex]);
+      reactionUntil = clock.elapsedTime + 0.9;
+    });
+
+    if (hasFinePointer) {
+      window.addEventListener("pointermove", (event) => {
+        const rect = hero.getBoundingClientRect();
+        const inside = event.clientY >= rect.top && event.clientY <= rect.bottom;
+        if (!inside) {
+          pointer.set(0, 0);
+          return;
+        }
+        pointer.x = THREE.MathUtils.clamp(((event.clientX - rect.left) / rect.width) * 2 - 1, -1, 1);
+        pointer.y = THREE.MathUtils.clamp(-(((event.clientY - rect.top) / rect.height) * 2 - 1), -1, 1);
+      }, { passive: true });
+    }
+
+    function resize() {
+      const { width, height } = stage.getBoundingClientRect();
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+    }
+
+    window.addEventListener("resize", resize, { passive: true });
+    resize();
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { visible = entry.isIntersecting; },
+      { threshold: 0.01 },
+    );
+    observer.observe(hero);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+      if (!character || document.hidden || !visible) return;
+
+      mixer?.update(delta);
+      smoothPointer.lerp(pointer, 0.055);
+      const sidePose = Math.abs(smoothPointer.x) > 0.48 ? Math.sign(smoothPointer.x) : 0;
+      const curiousPose = smoothPointer.y > 0.38 ? 1 : 0;
+      const tapReaction = elapsed < reactionUntil
+        ? Math.sin((reactionUntil - elapsed) * 12) * 0.035
+        : 0;
+
+      if (activeAction && elapsed - actionStartedAt >= actionDuration) finishAction();
+
+      const actionProgress = activeAction
+        ? THREE.MathUtils.clamp((elapsed - actionStartedAt) / actionDuration, 0, 1)
+        : 0;
+      const actionEnvelope = activeAction ? Math.sin(Math.PI * actionProgress) : 0;
+      let actionX = 0;
+      let actionY = tapReaction;
+      let actionRotationX = 0;
+      let actionRotationY = 0;
+      let actionRotationZ = 0;
+      let actionHeadX = 0;
+      let actionHeadY = 0;
+      let actionHeadZ = 0;
+      let actionEyeX = 0;
+      let actionEyeY = 0;
+      let actionEarLeft = 0;
+      let actionEarRight = 0;
+      let actionPendant = 0;
+
+      if (activeAction && !activeClipAction) {
+        if (activeAction === "greet") {
+          const nod = Math.sin(actionProgress * Math.PI * 5) * (1 - actionProgress);
+          actionY += Math.sin(actionProgress * Math.PI) * 0.08;
+          actionHeadX += nod * 0.11;
+          actionEarLeft += nod * 0.07;
+          actionEarRight -= nod * 0.07;
+        } else if (activeAction === "think") {
+          actionRotationY -= actionEnvelope * 0.12;
+          actionHeadY -= actionEnvelope * 0.1;
+          actionHeadZ -= actionEnvelope * 0.17;
+          actionEyeX -= actionEnvelope * 0.03;
+          actionEyeY += actionEnvelope * 0.018;
+          actionEarLeft += actionEnvelope * 0.06;
+        } else if (activeAction === "pose") {
+          actionX += actionEnvelope * 0.1;
+          actionRotationY += actionEnvelope * 0.42;
+          actionRotationZ -= actionEnvelope * 0.075;
+          actionHeadY -= actionEnvelope * 0.16;
+          actionHeadZ += actionEnvelope * 0.08;
+          actionEarRight -= actionEnvelope * 0.075;
+          actionPendant += actionEnvelope * 0.08;
+        } else if (activeAction === "dance") {
+          const sway = Math.sin(actionProgress * Math.PI * 6) * actionEnvelope;
+          const bounce = Math.abs(Math.sin(actionProgress * Math.PI * 6)) * actionEnvelope;
+          actionX += sway * 0.14;
+          actionY += bounce * 0.075;
+          actionRotationY += sway * 0.16;
+          actionRotationZ -= sway * 0.09;
+          actionHeadZ += sway * 0.11;
+          actionEarLeft += sway * 0.08;
+          actionEarRight += sway * 0.08;
+          actionPendant += sway * 0.14;
+        }
+      }
+
+      const pointerWeight = activeAction ? 0.35 : 1;
+      character.position.x = THREE.MathUtils.lerp(
+        character.position.x,
+        smoothPointer.x * 0.12 * pointerWeight + actionX,
+        0.075,
+      );
+      character.position.y = -0.08 + Math.sin(elapsed * 1.45) * 0.012 + actionY;
+      character.rotation.x = THREE.MathUtils.lerp(
+        character.rotation.x,
+        smoothPointer.y * 0.018 * pointerWeight + actionRotationX,
+        0.075,
+      );
+      character.rotation.y = THREE.MathUtils.lerp(
+        character.rotation.y,
+        0.08 + smoothPointer.x * 0.24 * pointerWeight + actionRotationY,
+        0.075,
+      );
+      character.rotation.z = THREE.MathUtils.lerp(
+        character.rotation.z,
+        -sidePose * 0.035 * pointerWeight + actionRotationZ,
+        0.075,
+      );
+
+      const clipControlsRig = activeClipAction !== null || (idleClipAction !== null && !activeAction);
+      if (head && headBase && !clipControlsRig) {
+        head.rotation.x = headBase.x - smoothPointer.y * 0.09 * pointerWeight
+          + tapReaction * 1.8 + actionHeadX;
+        head.rotation.y = headBase.y + smoothPointer.x * 0.15 * pointerWeight + actionHeadY;
+        head.rotation.z = headBase.z - sidePose * 0.045 * pointerWeight
+          + curiousPose * 0.025 + actionHeadZ;
+      }
+      if (eyeLeft && eyeLeftBase && !clipControlsRig) {
+        eyeLeft.position.x = eyeLeftBase.x + smoothPointer.x * 0.024 * pointerWeight + actionEyeX;
+        eyeLeft.position.y = eyeLeftBase.y + smoothPointer.y * 0.014 * pointerWeight + actionEyeY;
+      }
+      if (eyeRight && eyeRightBase && !clipControlsRig) {
+        eyeRight.position.x = eyeRightBase.x + smoothPointer.x * 0.024 * pointerWeight + actionEyeX;
+        eyeRight.position.y = eyeRightBase.y + smoothPointer.y * 0.014 * pointerWeight + actionEyeY;
+      }
+      if (earLeft && earLeftBase && !clipControlsRig) {
+        earLeft.rotation.z = earLeftBase.z
+          + Math.sin(elapsed * 1.1) * 0.018
+          + Math.max(0, -sidePose) * 0.065
+          + curiousPose * 0.025
+          + actionEarLeft;
+      }
+      if (earRight && earRightBase && !clipControlsRig) {
+        earRight.rotation.z = earRightBase.z
+          - Math.sin(elapsed * 1.1) * 0.018
+          - Math.max(0, sidePose) * 0.065
+          - curiousPose * 0.025
+          + actionEarRight;
+      }
+      if (pendant && !clipControlsRig) {
+        pendant.rotation.z = Math.sin(elapsed * 1.55) * 0.035
+          + smoothPointer.x * 0.045 * pointerWeight
+          + actionPendant;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  });
+</script>
+
+<style>
+  .character-stage {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .character-stage canvas,
+  .character-fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .character-stage canvas {
+    transition: transform 150ms ease;
+  }
+
+  .character-fallback {
+    object-fit: contain;
+    object-position: 50% 52%;
+    transform: scale(0.94);
+    transition: opacity 180ms ease;
+  }
+
+  .character-stage.is-ready .character-fallback {
+    opacity: 0;
+  }
+
+  .character-stage.is-fallback canvas,
+  .character-stage.is-fallback .character-load {
+    display: none;
+  }
+
+  .character-hit {
+    position: absolute;
+    z-index: 2;
+    top: 10%;
+    left: 34%;
+    width: 32%;
+    height: 82%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .character-hit:focus-visible {
+    outline: 2px solid #d68a18;
+    outline-offset: -8px;
+  }
+
+  .character-stage.is-pressed canvas {
+    transform: scale(0.992);
+  }
+
+  .character-dialogue {
+    position: absolute;
+    z-index: 4;
+    top: 18%;
+    right: 20%;
+    max-width: 210px;
+    margin: 0;
+    padding: 11px 13px;
+    color: #171719;
+    background: #faf8f4;
+    border: 1px solid #171719;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0;
+    transform: translateY(7px);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .character-stage.is-talking .character-dialogue {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .character-load {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    overflow: hidden;
+  }
+
+  .character-load i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: #d68a18;
+    transition: width 180ms ease, opacity 180ms ease;
+  }
+
+  .character-stage.is-ready .character-load i {
+    opacity: 0;
+  }
+
+  @media (max-width: 719px) {
+    .character-fallback {
+      object-position: 50% 43%;
+      transform: scale(0.84);
+    }
+
+    .character-hit {
+      top: 9%;
+      left: 17%;
+      width: 66%;
+      height: 68%;
+    }
+
+    .character-dialogue {
+      top: 15%;
+      right: 5%;
+      max-width: 165px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .character-stage canvas,
+    .character-fallback,
+    .character-dialogue,
+    .character-load i {
+      transition: none;
+    }
+  }
+</style>
