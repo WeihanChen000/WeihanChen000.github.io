@@ -317,16 +317,16 @@
   --prop-tilt: -7deg;
   top: 31%;
   left: 1%;
-  width: 80px;
-  height: 70px;
+  width: 130px;
+  height: 100px;
 }
 
 .home-page .sticker-prop[data-sticker-action="guitar"] {
   --prop-tilt: 6deg;
   top: 53%;
   right: -1%;
-  width: 78px;
-  height: 88px;
+  width: 132px;
+  height: 150px;
 }
 
 .home-page .sticker-prop[data-sticker-action="music"] {
@@ -384,13 +384,13 @@
 }
 
 .home-page .sticker-prop[data-sticker-action="work"] .sticker-prop-art {
-  width: 70px;
-  height: 54px;
+  width: 120px;
+  height: 90px;
 }
 
 .home-page .sticker-prop[data-sticker-action="guitar"] .sticker-prop-art {
-  width: 68px;
-  height: 78px;
+  width: 124px;
+  height: 142px;
 }
 
 .home-page .sticker-prop[data-sticker-action="music"] .sticker-prop-art {
@@ -2346,15 +2346,15 @@
   .home-page .sticker-prop[data-sticker-action="work"] {
     top: 34%;
     left: 1%;
-    width: 56px;
-    height: 48px;
+    width: 76px;
+    height: 60px;
   }
 
   .home-page .sticker-prop[data-sticker-action="guitar"] {
     top: 55%;
     right: 14%;
-    width: 54px;
-    height: 64px;
+    width: 74px;
+    height: 84px;
   }
 
   .home-page .sticker-prop[data-sticker-action="music"] {
@@ -2371,13 +2371,13 @@
   }
 
   .home-page .sticker-prop[data-sticker-action="work"] .sticker-prop-art {
-    width: 50px;
-    height: 38px;
+    width: 70px;
+    height: 52px;
   }
 
   .home-page .sticker-prop[data-sticker-action="guitar"] .sticker-prop-art {
-    width: 46px;
-    height: 56px;
+    width: 68px;
+    height: 78px;
   }
 
   .home-page .sticker-prop[data-sticker-action="music"] .sticker-prop-art {
