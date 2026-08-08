@@ -59,7 +59,7 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
       <button
         class="hero-character-button"
         type="button"
-        aria-label="打开角色动态，当前正在使用电脑"
+        aria-label="和角色互动，当前正在使用电脑"
         aria-expanded="false"
         aria-controls="character-status-bubble"
         data-character-trigger
@@ -143,20 +143,30 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
       </div>
 
       <aside
-        class="character-status-bubble"
+        class="character-reaction-layer"
         id="character-status-bubble"
-        aria-label="角色动态"
+        aria-label="角色回应"
         aria-live="polite"
         data-character-bubble
         hidden
       >
-        <button class="character-bubble-close" type="button" aria-label="关闭角色动态" data-character-bubble-close>×</button>
-        <span class="eyebrow">ON THE DESK</span>
-        <strong>今天也在把想法做成可运行的东西。</strong>
-        <div class="character-bubble-links">
-          {latestPost && <a href={`${base}posts/${latestPost.id}/`}>最新文章 <span aria-hidden="true">↗</span></a>}
-          <a href="#projects">正在做的项目 <span aria-hidden="true">↓</span></a>
-        </div>
+        <p class="character-quip" data-character-quip>
+          <span class="character-quip-text" data-character-quip-text aria-hidden="true">欸？点我干嘛</span>
+          <span class="visually-hidden" data-character-quip-live>欸？点我干嘛</span>
+        </p>
+        {latestPost && (
+          <a
+            class="character-scene-tag character-scene-tag--journal"
+            href={`${base}posts/${latestPost.id}/`}
+            aria-label={`阅读最近文章：${latestPost.data.title}`}
+            data-character-entry
+          >最近在写</a>
+        )}
+        <a
+          class="character-scene-tag character-scene-tag--projects"
+          href="#projects"
+          data-character-entry
+        >手头项目</a>
       </aside>
     </figure>
 

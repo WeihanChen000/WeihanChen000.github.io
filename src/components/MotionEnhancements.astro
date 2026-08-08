@@ -96,31 +96,136 @@
 
   const characterTrigger = document.querySelector<HTMLElement>("[data-character-trigger]");
   const characterBubble = document.querySelector<HTMLElement>("[data-character-bubble]");
-  const characterBubbleClose = characterBubble?.querySelector<HTMLElement>("[data-character-bubble-close]");
+  const characterQuipText = characterBubble?.querySelector<HTMLElement>("[data-character-quip-text]");
+  const characterQuipLive = characterBubble?.querySelector<HTMLElement>("[data-character-quip-live]");
+  const characterReactionProps = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-sticker-action] .sticker-prop-art"),
+  );
+  const characterPhrases = [
+    "欸？点我干嘛",
+    "被你发现我摸鱼了",
+    "角不能乱摸！",
+    "正在假装很忙…",
+    "今天也有在做东西",
+  ];
   let bubbleCloseTimer = 0;
+  let characterReactionAnimation: Animation | null = null;
+  let characterPropAnimations: Animation[] = [];
+  let characterReactionTimers: number[] = [];
+  let lastCharacterPhrase = -1;
+  let characterClickStreak = 0;
+  let lastCharacterClickAt = 0;
 
-  function setCharacterBubble(open: boolean, restoreFocus = false) {
+  function clearCharacterReactionMotion() {
+    characterReactionTimers.forEach((timer) => window.clearTimeout(timer));
+    characterReactionTimers = [];
+    characterReactionAnimation?.cancel();
+    characterReactionAnimation = null;
+    characterPropAnimations.forEach((animation) => animation.cancel());
+    characterPropAnimations = [];
+  }
+
+  function renderCharacterQuip(message: string) {
+    if (characterQuipText) {
+      characterQuipText.replaceChildren(...Array.from(message).map((character) => {
+        const span = document.createElement("span");
+        span.textContent = character;
+        return span;
+      }));
+    }
+    if (characterQuipLive) characterQuipLive.textContent = message;
+  }
+
+  function nextCharacterQuip() {
+    let index = Math.floor(Math.random() * characterPhrases.length);
+    if (index === lastCharacterPhrase) index = (index + 1) % characterPhrases.length;
+    lastCharacterPhrase = index;
+    return characterPhrases[index];
+  }
+
+  function playCharacterReaction() {
+    if (!characterTrigger || reduceMotion.matches) return;
+    const stack = characterTrigger.querySelector<HTMLElement>(".sticker-character-stack");
+    if (!stack) return;
+
+    const startTransform = getComputedStyle(stack).transform;
+    characterReactionAnimation = stack.animate([
+      { offset: 0, transform: startTransform === "none" ? "translate3d(0, 0, 0)" : startTransform },
+      { offset: 0.13, transform: "translate3d(0, 7px, 0) scale(1.03, 0.94) rotate(0deg)" },
+      { offset: 0.34, transform: "translate3d(-3px, -2px, 0) scale(0.985, 1.025) rotate(-2deg)" },
+      { offset: 0.56, transform: "translate3d(3px, 0, 0) scale(1.01, 0.99) rotate(1.6deg)" },
+      { offset: 0.76, transform: "translate3d(-1px, 0, 0) scale(1) rotate(-0.7deg)" },
+      { offset: 1, transform: "translate3d(0, 0, 0) scale(1) rotate(0deg)" },
+    ], {
+      duration: 500,
+      easing: "linear",
+    });
+    characterReactionAnimation.onfinish = () => { characterReactionAnimation = null; };
+  }
+
+  function playCharacterPropReaction(art: HTMLElement, index: number) {
+    const direction = index % 2 === 0 ? -1 : 1;
+    const animation = art.animate([
+      { offset: 0, transform: "rotate(var(--prop-tilt)) translate3d(0, 0, 0)" },
+      { offset: 0.22, transform: `rotate(calc(var(--prop-tilt) + ${direction * 2}deg)) translate3d(${direction * 2}px, -3px, 0)` },
+      { offset: 0.48, transform: `rotate(calc(var(--prop-tilt) - ${direction * 1.5}deg)) translate3d(${-direction}px, 1px, 0)` },
+      { offset: 0.72, transform: `rotate(calc(var(--prop-tilt) + ${direction * 0.7}deg)) translate3d(${direction}px, -1px, 0)` },
+      { offset: 1, transform: "rotate(var(--prop-tilt)) translate3d(0, 0, 0)" },
+    ], {
+      duration: 340,
+      easing: "linear",
+    });
+    characterPropAnimations.push(animation);
+    animation.onfinish = () => {
+      characterPropAnimations = characterPropAnimations.filter((item) => item !== animation);
+    };
+  }
+
+  function setCharacterBubble(open: boolean, restoreFocus = false, message?: string) {
     if (!characterTrigger || !characterBubble) return;
     window.clearTimeout(bubbleCloseTimer);
+    clearCharacterReactionMotion();
     characterTrigger.setAttribute("aria-expanded", String(open));
+    characterTrigger.classList.remove("is-pressed");
 
     if (open) {
+      renderCharacterQuip(message ?? nextCharacterQuip());
       characterBubble.hidden = false;
-      requestAnimationFrame(() => characterBubble.classList.add("is-open"));
+      characterBubble.classList.add("is-open");
+      if (!reduceMotion.matches) {
+        playCharacterReaction();
+        characterReactionProps.forEach((art, index) => {
+          characterReactionTimers.push(window.setTimeout(
+            () => playCharacterPropReaction(art, index),
+            230 + index * 85,
+          ));
+        });
+      }
       return;
     }
 
     characterBubble.classList.remove("is-open");
     bubbleCloseTimer = window.setTimeout(() => {
       characterBubble.hidden = true;
-    }, reduceMotion.matches ? 0 : 180);
+    }, reduceMotion.matches ? 0 : 220);
     if (restoreFocus) characterTrigger.focus();
   }
 
   characterTrigger?.addEventListener("click", (event) => {
-    createCharacterSparks(event, characterTrigger);
+    if (event.detail > 0) characterTrigger.blur();
+    const now = performance.now();
+    characterClickStreak = now - lastCharacterClickAt <= 1200 ? characterClickStreak + 1 : 1;
+    lastCharacterClickAt = now;
     const isOpen = characterTrigger.getAttribute("aria-expanded") === "true";
-    setCharacterBubble(!isOpen);
+    if (isOpen) {
+      setCharacterBubble(false);
+      return;
+    }
+
+    const message = characterClickStreak >= 3 ? "别戳了，在工作了" : nextCharacterQuip();
+    if (characterClickStreak >= 3) characterClickStreak = 0;
+    createCharacterSparks(event, characterTrigger);
+    setCharacterBubble(true, false, message);
   });
 
   characterTrigger?.addEventListener("keydown", (event) => {
@@ -129,7 +234,10 @@
     characterTrigger.click();
   });
 
-  characterBubbleClose?.addEventListener("click", () => setCharacterBubble(false, true));
+  characterTrigger?.addEventListener("pointerdown", () => characterTrigger.classList.add("is-pressed"));
+  characterTrigger?.addEventListener("pointerup", () => characterTrigger.classList.remove("is-pressed"));
+  characterTrigger?.addEventListener("pointercancel", () => characterTrigger.classList.remove("is-pressed"));
+  characterTrigger?.addEventListener("pointerleave", () => characterTrigger.classList.remove("is-pressed"));
 
   document.addEventListener("pointerdown", (event) => {
     if (!characterTrigger || !characterBubble || characterBubble.hidden) return;
@@ -141,6 +249,19 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && characterBubble && !characterBubble.hidden) {
       setCharacterBubble(false, true);
+    }
+  });
+
+  window.addEventListener("pagehide", () => {
+    window.clearTimeout(bubbleCloseTimer);
+    clearCharacterReactionMotion();
+  });
+
+  reduceMotion.addEventListener("change", () => {
+    clearCharacterReactionMotion();
+    characterTrigger?.classList.remove("is-pressed");
+    if (characterBubble && characterTrigger?.getAttribute("aria-expanded") === "true") {
+      characterBubble.classList.add("is-open");
     }
   });
 
@@ -183,7 +304,7 @@
     });
     const label = stickerLabels[state];
     if (stickerStatus) stickerStatus.textContent = `当前动作：${label}`;
-    characterTrigger?.setAttribute("aria-label", `打开角色动态，当前正在${label}`);
+    characterTrigger?.setAttribute("aria-label", `和角色互动，当前正在${label}`);
   }
 
   function finishStickerAction(run: number) {

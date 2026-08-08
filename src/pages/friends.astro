@@ -6,11 +6,10 @@ const friends = [
   {
     name: "Flurry's Blog",
     url: "https://blog.flurry.top/",
-    displayUrl: "blog.flurry.top",
+    avatar: "https://blog.flurry.top/apple-touch-icon.png",
+    description: "记录技术和生活",
   },
 ];
-
-const getInitial = (name: string) => name.trim().charAt(0).toUpperCase();
 ---
 
 <BaseLayout
@@ -31,12 +30,23 @@ const getInitial = (name: string) => name.trim().charAt(0).toUpperCase();
           rel="noreferrer"
           aria-label={`访问 ${friend.name}`}
         >
-          <span class="friend-file-initial" aria-hidden="true">{getInitial(friend.name)}</span>
-          <div class="friend-file-name">
+          <span class="friend-file-fastener" aria-hidden="true"></span>
+          <span class="friend-file-avatar" aria-hidden="true">
+            <img
+              src={friend.avatar}
+              alt=""
+              width="180"
+              height="180"
+              loading="eager"
+              decoding="async"
+              referrerpolicy="no-referrer"
+            />
+          </span>
+          <div class="friend-file-copy">
             <h2>{friend.name}</h2>
+            <p>{friend.description}</p>
           </div>
-          <small>{friend.displayUrl}</small>
-          <span class="friend-file-arrow" aria-hidden="true">↗</span>
+          <span class="friend-file-entry">访问 <span aria-hidden="true">↗</span></span>
         </a>
       ))}
     </div>
