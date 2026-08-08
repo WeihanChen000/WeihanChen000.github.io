@@ -21,17 +21,18 @@ const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
       <p aria-label={`共 ${posts.length} 篇日志`}>{posts.length}</p>
     </header>
 
+    <PinnedSticker
+      class="archive-books-sticker desktop-easter-egg"
+      src="assets/stickers/prop-books.webp"
+      label="轻轻摆动书本贴纸"
+      width={1171}
+      height={920}
+      fastener="pin"
+      tone="copper"
+    />
+
     <div class="archive-book-wrap">
       <PostList posts={posts} />
-      <PinnedSticker
-        class="archive-books-sticker desktop-easter-egg"
-        src="assets/stickers/prop-books.webp"
-        label="轻轻摆动书本贴纸"
-        width={1171}
-        height={920}
-        fastener="pin"
-        tone="copper"
-      />
     </div>
   </section>
 </BaseLayout>

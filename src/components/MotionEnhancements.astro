@@ -347,7 +347,7 @@
       suppressClickUntil: 0,
     }];
   });
-  const cameraStickerAnimations = new WeakMap<HTMLButtonElement, Animation>();
+  const pinnedStickerAnimations = new WeakMap<HTMLButtonElement, Animation>();
 
   function applyPinnedStickerMotion(state: PinnedStickerMotion) {
     state.body.style.setProperty("--pinned-rotate-x", `${state.rotateX.toFixed(2)}deg`);
@@ -407,7 +407,7 @@
     state.frame = requestAnimationFrame(tick);
   }
 
-  function cameraStickerTransform(
+  function pinnedStickerTransform(
     rotateX: number,
     rotateY: number,
     rotateZ: number,
@@ -416,17 +416,21 @@
     return `perspective(760px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(calc(var(--pinned-rest-rotate-z) + ${rotateZ}deg)) scale(${scale})`;
   }
 
-  function stopCameraStickerSequence(state: PinnedStickerMotion) {
-    const animation = cameraStickerAnimations.get(state.root);
+  function stopPinnedStickerSequence(state: PinnedStickerMotion) {
+    const animation = pinnedStickerAnimations.get(state.root);
     if (animation) animation.cancel();
-    cameraStickerAnimations.delete(state.root);
+    pinnedStickerAnimations.delete(state.root);
     state.root.classList.remove("is-wobbling");
   }
 
-  function playCameraStickerSequence(state: PinnedStickerMotion, mode: "hover" | "click") {
+  function playPinnedStickerSequence(
+    state: PinnedStickerMotion,
+    mode: "hover" | "click",
+    direction: -1 | 1,
+  ) {
     const startTransform = getComputedStyle(state.body).transform;
     stopPinnedStickerSpring(state);
-    stopCameraStickerSequence(state);
+    stopPinnedStickerSequence(state);
     state.rotateX = 0;
     state.rotateY = 0;
     state.rotateZ = 0;
@@ -439,22 +443,22 @@
     const frames: Keyframe[] = isClick
       ? [
           { offset: 0, transform: startTransform },
-          { offset: 0.1, transform: cameraStickerTransform(-1.4, -1.1, -2.6, 0.99) },
-          { offset: 0.28, transform: cameraStickerTransform(1.8, 1.45, 5.4, 1.015) },
-          { offset: 0.46, transform: cameraStickerTransform(-1.15, -0.9, -3.5, 0.995) },
-          { offset: 0.64, transform: cameraStickerTransform(0.7, 0.55, 2.05, 1.006) },
-          { offset: 0.8, transform: cameraStickerTransform(-0.35, -0.25, -0.95, 0.998) },
-          { offset: 0.92, transform: cameraStickerTransform(0.12, 0.1, 0.34) },
-          { offset: 1, transform: cameraStickerTransform(0, 0, 0) },
+          { offset: 0.1, transform: pinnedStickerTransform(-1.4, -1.1 * direction, -2.6 * direction, 0.99) },
+          { offset: 0.28, transform: pinnedStickerTransform(1.8, 1.45 * direction, 5.4 * direction, 1.015) },
+          { offset: 0.46, transform: pinnedStickerTransform(-1.15, -0.9 * direction, -3.5 * direction, 0.995) },
+          { offset: 0.64, transform: pinnedStickerTransform(0.7, 0.55 * direction, 2.05 * direction, 1.006) },
+          { offset: 0.8, transform: pinnedStickerTransform(-0.35, -0.25 * direction, -0.95 * direction, 0.998) },
+          { offset: 0.92, transform: pinnedStickerTransform(0.12, 0.1 * direction, 0.34 * direction) },
+          { offset: 1, transform: pinnedStickerTransform(0, 0, 0) },
         ]
       : [
           { offset: 0, transform: startTransform },
-          { offset: 0.14, transform: cameraStickerTransform(-0.9, -0.7, -1.7, 0.994) },
-          { offset: 0.38, transform: cameraStickerTransform(1.25, 1, 3.9, 1.01) },
-          { offset: 0.6, transform: cameraStickerTransform(-0.7, -0.55, -2.15, 0.997) },
-          { offset: 0.78, transform: cameraStickerTransform(0.32, 0.25, 0.95, 1.003) },
-          { offset: 0.91, transform: cameraStickerTransform(-0.1, -0.08, -0.28) },
-          { offset: 1, transform: cameraStickerTransform(0, 0, 0) },
+          { offset: 0.14, transform: pinnedStickerTransform(-0.9, -0.7 * direction, -1.7 * direction, 0.994) },
+          { offset: 0.38, transform: pinnedStickerTransform(1.25, 1 * direction, 3.9 * direction, 1.01) },
+          { offset: 0.6, transform: pinnedStickerTransform(-0.7, -0.55 * direction, -2.15 * direction, 0.997) },
+          { offset: 0.78, transform: pinnedStickerTransform(0.32, 0.25 * direction, 0.95 * direction, 1.003) },
+          { offset: 0.91, transform: pinnedStickerTransform(-0.1, -0.08 * direction, -0.28 * direction) },
+          { offset: 1, transform: pinnedStickerTransform(0, 0, 0) },
         ];
 
     state.root.classList.add("is-wobbling");
@@ -463,10 +467,10 @@
       easing: "linear",
       fill: "none",
     });
-    cameraStickerAnimations.set(state.root, animation);
+    pinnedStickerAnimations.set(state.root, animation);
     animation.onfinish = () => {
-      if (cameraStickerAnimations.get(state.root) !== animation) return;
-      cameraStickerAnimations.delete(state.root);
+      if (pinnedStickerAnimations.get(state.root) !== animation) return;
+      pinnedStickerAnimations.delete(state.root);
       state.root.classList.remove("is-wobbling");
       applyPinnedStickerMotion(state);
     };
@@ -482,6 +486,7 @@
 
   pinnedStickerStates.forEach((state, index) => {
     const { root } = state;
+    const sequenceDirection: -1 | 1 = index % 2 === 0 ? -1 : 1;
 
     root.addEventListener("pointerenter", (event) => {
       if (
@@ -491,22 +496,7 @@
         || state.pointerId !== -1
       ) return;
 
-      if (root.classList.contains("journal-camera-sticker")) {
-        playCameraStickerSequence(state, "hover");
-        return;
-      }
-
-      const direction = index % 2 === 0 ? -1 : 1;
-      const emphasis = 1;
-      stopPinnedStickerSpring(state);
-      state.rotateX = -0.7 * emphasis;
-      state.rotateY = direction * 0.45 * emphasis;
-      state.rotateZ = direction * 1.65 * emphasis;
-      state.velocityX = 8 * emphasis;
-      state.velocityY = -direction * 5 * emphasis;
-      state.velocityZ = -direction * 17 * emphasis;
-      applyPinnedStickerMotion(state);
-      settlePinnedSticker(state);
+      playPinnedStickerSequence(state, "hover", sequenceDirection);
     });
 
     root.addEventListener("click", (event) => {
@@ -516,29 +506,19 @@
       }
       if (reduceMotion.matches) return;
 
-      if (root.classList.contains("journal-camera-sticker")) {
-        playCameraStickerSequence(state, "click");
-        return;
-      }
+      playPinnedStickerSequence(state, "click", sequenceDirection);
+    });
 
-      const direction = index % 2 === 0 ? -1 : 1;
-      const emphasis = 1;
-      stopPinnedStickerSpring(state);
-      state.rotateX = -1.15 * emphasis;
-      state.rotateY = direction * 0.75 * emphasis;
-      state.rotateZ = direction * 2.35 * emphasis;
-      state.velocityX = 11 * emphasis;
-      state.velocityY = -direction * 7 * emphasis;
-      state.velocityZ = -direction * 24 * emphasis;
-      applyPinnedStickerMotion(state);
-      settlePinnedSticker(state);
+    root.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      if (reduceMotion.matches) return;
+      playPinnedStickerSequence(state, "click", sequenceDirection);
     });
 
     root.addEventListener("pointerdown", (event) => {
       root.classList.add("is-pressed");
-      if (root.classList.contains("journal-camera-sticker")) {
-        stopCameraStickerSequence(state);
-      }
+      stopPinnedStickerSequence(state);
       if (!pinnedStickerDragEnabled(event)) return;
 
       stopPinnedStickerSpring(state);
@@ -594,6 +574,7 @@
   reduceMotion.addEventListener("change", () => {
     pinnedStickerStates.forEach((state) => {
       stopPinnedStickerSpring(state);
+      stopPinnedStickerSequence(state);
       state.rotateX = 0;
       state.rotateY = 0;
       state.rotateZ = 0;

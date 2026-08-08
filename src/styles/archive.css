@@ -3,6 +3,7 @@
 }
 
 .archive-page {
+  position: relative;
   width: min(100%, 1180px);
   margin: 0 auto;
   padding: 96px var(--page-gutter) 150px;
@@ -343,9 +344,9 @@
   --pin-left: 50%;
   --pin-top: 10%;
   --pinned-rest-rotate-z: 7deg;
-  top: -72px;
-  right: 24px;
-  width: 142px;
+  top: 78px;
+  right: -120px;
+  width: 112px;
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
@@ -383,7 +384,14 @@
   outline-offset: -5px;
 }
 
+@media (max-width: 1359px) {
+  .pinned-sticker.archive-books-sticker {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
+
   .archive-page {
     padding-top: 88px;
   }
