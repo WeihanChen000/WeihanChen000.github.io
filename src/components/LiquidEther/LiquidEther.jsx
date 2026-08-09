@@ -22,7 +22,8 @@ export default function LiquidEther({
   takeoverDuration = 0.25,
   autoResumeDelay = 1000,
   autoRampDuration = 0.6,
-  interactionEnabled = true
+  interactionEnabled = true,
+  maxFps = 60
 }) {
   const mountRef = useRef(null);
   const webglRef = useRef(null);
@@ -86,9 +87,10 @@ export default function LiquidEther({
       }
       init(container) {
         this.container = container;
-        this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        this.isMobile = window.matchMedia('(max-width: 719px)').matches;
+        this.pixelRatio = Math.min(window.devicePixelRatio || 1, this.isMobile ? 1 : 1.5);
         this.resize();
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
         this.renderer.autoClear = false;
         this.renderer.setClearColor(new THREE.Color(0x000000), 0);
         this.renderer.setPixelRatio(this.pixelRatio);
@@ -126,6 +128,7 @@ export default function LiquidEther({
         this.container = null;
         this.docTarget = null;
         this.listenerTarget = null;
+        this.bounds = null;
         this.isHoverInside = false;
         this.hasUserControl = false;
         this.isAutoActive = false;
@@ -144,6 +147,7 @@ export default function LiquidEther({
       }
       init(container, shouldListen = true) {
         this.container = container;
+        this.updateBounds();
         this.docTarget = container.ownerDocument || null;
         if (!shouldListen) return;
         const defaultView =
@@ -171,10 +175,14 @@ export default function LiquidEther({
         this.listenerTarget = null;
         this.docTarget = null;
         this.container = null;
+        this.bounds = null;
+      }
+      updateBounds() {
+        if (this.container) this.bounds = this.container.getBoundingClientRect();
       }
       isPointInside(clientX, clientY) {
-        if (!this.container) return false;
-        const rect = this.container.getBoundingClientRect();
+        const rect = this.bounds;
+        if (!rect) return false;
         if (rect.width === 0 || rect.height === 0) return false;
         return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
       }
@@ -183,9 +191,9 @@ export default function LiquidEther({
         return this.isHoverInside;
       }
       setCoords(x, y) {
-        if (!this.container) return;
+        const rect = this.bounds;
+        if (!rect) return;
         if (this.timer) window.clearTimeout(this.timer);
-        const rect = this.container.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
         const nx = (x - rect.left) / rect.width;
         const ny = (y - rect.top) / rect.height;
@@ -203,8 +211,8 @@ export default function LiquidEther({
         if (!this.updateHoverState(event.clientX, event.clientY)) return;
         if (this.onInteract) this.onInteract();
         if (this.isAutoActive && !this.hasUserControl && !this.takeoverActive) {
-          if (!this.container) return;
-          const rect = this.container.getBoundingClientRect();
+          const rect = this.bounds;
+          if (!rect) return;
           if (rect.width === 0 || rect.height === 0) return;
           const nx = (event.clientX - rect.left) / rect.width;
           const ny = (event.clientY - rect.top) / rect.height;
@@ -523,6 +531,14 @@ export default function LiquidEther({
         Common.renderer.setRenderTarget(this.props.output || null);
         Common.renderer.render(this.scene, this.camera);
         Common.renderer.setRenderTarget(null);
+      }
+      dispose() {
+        this.scene?.traverse((object) => {
+          object.geometry?.dispose?.();
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.filter(Boolean).forEach((material) => material.dispose?.());
+        });
+        this.scene?.clear();
       }
     }
 
@@ -884,6 +900,17 @@ export default function LiquidEther({
         });
         this.pressure.update({ vel, pressure });
       }
+      dispose() {
+        [
+          this.advection,
+          this.externalForce,
+          this.viscous,
+          this.divergence,
+          this.poisson,
+          this.pressure
+        ].forEach((pass) => pass?.dispose?.());
+        Object.values(this.fbos).forEach((target) => target?.dispose?.());
+      }
     }
 
     class Output {
@@ -925,6 +952,12 @@ export default function LiquidEther({
         this.simulation.update();
         this.render();
       }
+      dispose() {
+        this.simulation?.dispose?.();
+        this.output?.geometry?.dispose?.();
+        this.output?.material?.dispose?.();
+        this.scene?.clear();
+      }
     }
 
     class WebGLManager {
@@ -947,8 +980,6 @@ export default function LiquidEther({
         });
         this.init();
         this._loop = this.loop.bind(this);
-        this._resize = this.resize.bind(this);
-        window.addEventListener('resize', this._resize);
         this._onVisibility = () => {
           const hidden = document.hidden;
           if (hidden) {
@@ -959,6 +990,7 @@ export default function LiquidEther({
         };
         document.addEventListener('visibilitychange', this._onVisibility);
         this.running = false;
+        this.lastFrameTime = 0;
       }
       init() {
         this.props.$wrapper.prepend(Common.renderer.domElement);
@@ -966,6 +998,7 @@ export default function LiquidEther({
       }
       resize() {
         Common.resize();
+        Mouse.updateBounds();
         this.output.resize();
       }
       render() {
@@ -974,14 +1007,19 @@ export default function LiquidEther({
         Common.update();
         this.output.update();
       }
-      loop() {
+      loop(timestamp = performance.now()) {
         if (!this.running) return; // safety
-        this.render();
+        const frameInterval = 1000 / Math.max(1, this.props.maxFps);
+        if (timestamp - this.lastFrameTime >= frameInterval) {
+          this.lastFrameTime = timestamp;
+          this.render();
+        }
         rafRef.current = requestAnimationFrame(this._loop);
       }
       start() {
         if (this.running) return;
         this.running = true;
+        this.lastFrameTime = 0;
         this._loop();
       }
       pause() {
@@ -993,9 +1031,10 @@ export default function LiquidEther({
       }
       dispose() {
         try {
-          window.removeEventListener('resize', this._resize);
           document.removeEventListener('visibilitychange', this._onVisibility);
           Mouse.dispose();
+          this.output?.dispose?.();
+          paletteTex.dispose();
           if (Common.renderer) {
             const canvas = Common.renderer.domElement;
             if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
@@ -1003,6 +1042,8 @@ export default function LiquidEther({
             Common.renderer.forceContextLoss();
           }
           if (Common.clock) Common.clock.dispose();
+          Common.renderer = null;
+          Common.clock = null;
         } catch (e) {
           void 0;
         }
@@ -1013,16 +1054,24 @@ export default function LiquidEther({
     container.style.position = container.style.position || 'relative';
     container.style.overflow = container.style.overflow || 'hidden';
 
-    const webgl = new WebGLManager({
-      $wrapper: container,
-      autoDemo,
-      autoSpeed,
-      autoIntensity,
-      takeoverDuration,
-      autoResumeDelay,
-      autoRampDuration,
-      interactionEnabled
-    });
+    let webgl;
+    try {
+      webgl = new WebGLManager({
+        $wrapper: container,
+        autoDemo,
+        autoSpeed,
+        autoIntensity,
+        takeoverDuration,
+        autoResumeDelay,
+        autoRampDuration,
+        interactionEnabled,
+        maxFps
+      });
+    } catch {
+      paletteTex.dispose();
+      container.dataset.webglFallback = '';
+      return undefined;
+    }
     webglRef.current = webgl;
 
     const applyOptionsFromProps = () => {
@@ -1118,7 +1167,8 @@ export default function LiquidEther({
     takeoverDuration,
     autoResumeDelay,
     autoRampDuration,
-    interactionEnabled
+    interactionEnabled,
+    maxFps
   ]);
 
   useEffect(() => {

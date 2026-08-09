@@ -17,6 +17,9 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
   day: "2-digit",
 });
+const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
+  ? `${base}${cover.replace(/-1200\.webp$/, "-360.webp")} 360w, ${base}${cover.replace(/-1200\.webp$/, "-720.webp")} 720w, ${base}${cover} 1200w`
+  : undefined;
 ---
 
 <BaseLayout
@@ -25,16 +28,18 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   description="Weihan Chen 的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。"
   image="assets/character/sheep-hero.png"
   preloadImages={[
-    "assets/stickers/sheep-working.webp",
-    "assets/stickers/sheep-guitar.webp",
-    "assets/stickers/sheep-listening.webp",
-    "assets/stickers/prop-laptop.webp",
-    "assets/stickers/prop-guitar.webp",
-    "assets/stickers/prop-headphones.webp",
+    {
+      src: "assets/stickers/sheep-working-640.webp",
+      srcset: [
+        { src: "assets/stickers/sheep-working-400.webp", width: 400 },
+        { src: "assets/stickers/sheep-working-640.webp", width: 640 },
+      ],
+      sizes: "(max-width: 719px) 280px, 500px",
+    },
   ]}
 >
   <section class="hero" data-home-hero aria-labelledby="hero-title">
-    <LiquidEtherBackground client:only="react" />
+    <LiquidEtherBackground client:idle />
 
     <div class="hero-graphic" aria-hidden="true">
       <span class="hero-graphic-ring"></span>
@@ -67,10 +72,12 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
         <span class="sticker-character-stack" aria-hidden="true">
           <img
             class="sticker-character-pose is-active"
-            src={`${base}assets/stickers/sheep-working.webp`}
+            src={`${base}assets/stickers/sheep-working-640.webp`}
+            srcset={`${base}assets/stickers/sheep-working-400.webp 400w, ${base}assets/stickers/sheep-working-640.webp 640w`}
+            sizes="(max-width: 719px) 280px, 500px"
             alt=""
-            width="922"
-            height="1486"
+            width="640"
+            height="1031"
             decoding="async"
             loading="eager"
             fetchpriority="high"
@@ -78,22 +85,20 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
           />
           <img
             class="sticker-character-pose"
-            src={`${base}assets/stickers/sheep-guitar.webp`}
+            data-src={`${base}assets/stickers/sheep-guitar.webp`}
             alt=""
             width="953"
             height="1650"
             decoding="async"
-            loading="eager"
             data-character-pose="guitar"
           />
           <img
             class="sticker-character-pose"
-            src={`${base}assets/stickers/sheep-listening.webp`}
+            data-src={`${base}assets/stickers/sheep-listening.webp`}
             alt=""
             width="724"
             height="1495"
             decoding="async"
-            loading="eager"
             data-character-pose="music"
           />
         </span>
@@ -109,7 +114,7 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
           data-sticker-action="work"
         >
           <span class="sticker-prop-art" aria-hidden="true">
-            <img src={`${base}assets/stickers/prop-laptop.webp`} alt="" width="1350" height="1013" decoding="async" loading="eager" />
+            <img src={`${base}assets/stickers/prop-laptop-320.webp`} alt="" width="320" height="240" decoding="async" fetchpriority="low" />
           </span>
           <span class="sticker-prop-indicator" aria-hidden="true"></span>
         </button>
@@ -122,7 +127,7 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
           data-sticker-action="guitar"
         >
           <span class="sticker-prop-art" aria-hidden="true">
-            <img src={`${base}assets/stickers/prop-guitar.webp`} alt="" width="1166" height="1196" decoding="async" loading="eager" />
+            <img src={`${base}assets/stickers/prop-guitar-320.webp`} alt="" width="320" height="328" decoding="async" fetchpriority="low" />
           </span>
           <span class="sticker-prop-indicator" aria-hidden="true"></span>
         </button>
@@ -135,7 +140,7 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
           data-sticker-action="music"
         >
           <span class="sticker-prop-art" aria-hidden="true">
-            <img src={`${base}assets/stickers/prop-headphones.webp`} alt="" width="913" height="1208" decoding="async" loading="eager" />
+            <img src={`${base}assets/stickers/prop-headphones-320.webp`} alt="" width="320" height="423" decoding="async" fetchpriority="low" />
           </span>
           <span class="sticker-prop-indicator" aria-hidden="true"></span>
         </button>
@@ -182,10 +187,10 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   <section class="journal-section" id="notes" aria-labelledby="notes-title">
     <PinnedSticker
       class="journal-camera-sticker desktop-easter-egg"
-      src="assets/stickers/prop-instant-camera.webp"
+      src="assets/stickers/prop-instant-camera-320.webp"
       label="摆动拍立得贴纸"
-      width={1143}
-      height={924}
+      width={320}
+      height={259}
       fastener="pin"
       tone="copper"
     />
@@ -237,9 +242,11 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
               {post.data.cover ? (
                 <img
                   src={`${base}${post.data.cover}`}
+                  srcset={coverSrcSet(post.data.cover)}
+                  sizes="(max-width: 719px) 82vw, (max-width: 1100px) 52vw, 610px"
                   alt={post.data.coverAlt}
                   width="1200"
-                  height="720"
+                  height="686"
                   loading="lazy"
                   decoding="async"
                 />

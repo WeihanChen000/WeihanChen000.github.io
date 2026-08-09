@@ -9,7 +9,12 @@ interface Props {
   description?: string;
   image?: string;
   bodyClass?: string;
-  preloadImages?: string[];
+  preloadImages?: Array<string | {
+    src: string;
+    srcset?: Array<{ src: string; width: number }>;
+    sizes?: string;
+    type?: string;
+  }>;
 }
 
 const {
@@ -35,9 +40,25 @@ const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | 
     <meta name="description" content={description} />
     <meta name="theme-color" content="#171719" />
     <link rel="canonical" href={canonicalURL} />
-    <link rel="icon" type="image/png" href={`${base}assets/character/sheep-hero.png`} />
+    <link rel="icon" type="image/png" sizes="64x64" href={`${base}assets/character/favicon.png`} />
     <link rel="alternate" type="application/rss+xml" title="Weihan Chen Personal Blog" href={`${base}rss.xml`} />
-    {preloadImages.map((src) => <link rel="preload" as="image" href={`${base}${src}`} type="image/webp" />)}
+    {preloadImages.map((image) => {
+      const preload = typeof image === "string" ? { src: image } : image;
+      const imageSrcSet = preload.srcset
+        ?.map((source) => `${base}${source.src} ${source.width}w`)
+        .join(", ");
+      return (
+        <link
+          rel="preload"
+          as="image"
+          href={`${base}${preload.src}`}
+          imagesrcset={imageSrcSet}
+          imagesizes={preload.sizes}
+          type={preload.type ?? "image/webp"}
+          fetchpriority="high"
+        />
+      );
+    })}
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />

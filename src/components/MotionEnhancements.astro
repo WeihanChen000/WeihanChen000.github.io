@@ -12,6 +12,7 @@
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  const characterTrigger = document.querySelector<HTMLElement>("[data-character-trigger]");
 
   // Astro-native adaptation of React Bits ClickSpark and AnimatedContent.
   const sparkCanvas = document.querySelector<HTMLCanvasElement>("[data-click-spark-layer]");
@@ -63,15 +64,25 @@
     sparkFrame = sparks.length ? requestAnimationFrame(drawSparks) : 0;
   }
 
-  if (sparkCanvas && sparkContext) {
+  if (
+    characterTrigger
+    && sparkCanvas
+    && sparkContext
+    && window.innerWidth > 719
+    && finePointer.matches
+    && !reduceMotion.matches
+  ) {
     resizeSparkCanvas();
     window.addEventListener("resize", resizeSparkCanvas, { passive: true });
+  } else {
+    sparkCanvas?.remove();
   }
 
   function createCharacterSparks(event: MouseEvent, target: HTMLElement) {
     if (
       !sparkCanvas
       || !sparkContext
+      || !sparkCanvas.isConnected
       || window.innerWidth <= 719
       || reduceMotion.matches
       || !finePointer.matches
@@ -94,7 +105,6 @@
     if (!sparkFrame) sparkFrame = requestAnimationFrame(drawSparks);
   }
 
-  const characterTrigger = document.querySelector<HTMLElement>("[data-character-trigger]");
   const characterBubble = document.querySelector<HTMLElement>("[data-character-bubble]");
   const characterQuipText = characterBubble?.querySelector<HTMLElement>("[data-character-quip-text]");
   const characterQuipLive = characterBubble?.querySelector<HTMLElement>("[data-character-quip-live]");
@@ -307,6 +317,14 @@
     characterTrigger?.setAttribute("aria-label", `和角色互动，当前正在${label}`);
   }
 
+  async function loadStickerPose(state: StickerState) {
+    const pose = stickerPoses.find((item) => item.dataset.characterPose === state);
+    if (!(pose instanceof HTMLImageElement)) return;
+    if (!pose.src && pose.dataset.src) pose.src = pose.dataset.src;
+    if (pose.complete && pose.naturalWidth > 0) return;
+    await pose.decode().catch(() => undefined);
+  }
+
   function finishStickerAction(run: number) {
     if (run !== stickerRun || !stickerStage) return;
     stickerStage.removeAttribute("data-motion");
@@ -323,25 +341,32 @@
     stickerActions.forEach((item) => item.classList.remove("is-performing"));
     stickerPoses.forEach((pose) => pose.classList.remove("is-entering", "is-performing"));
 
-    if (reduceMotion.matches) {
+    const activatePose = async () => {
+      await loadStickerPose(state);
+      if (run !== stickerRun) return;
       setStickerPose(state);
-      finishStickerAction(run);
+      if (reduceMotion.matches) {
+        finishStickerAction(run);
+        return;
+      }
+      const activePose = stickerPoses.find((pose) => pose.dataset.characterPose === state);
+      activePose?.classList.add("is-entering", "is-performing");
+      stickerTimers.push(window.setTimeout(() => activePose?.classList.remove("is-entering"), 120));
+      stickerTimers.push(window.setTimeout(
+        () => finishStickerAction(run),
+        Math.max(240, stickerDurations[state] - 70),
+      ));
+    };
+
+    if (reduceMotion.matches) {
+      void activatePose();
       return;
     }
 
     action.classList.add("is-performing");
     stickerStage.classList.add("is-switching");
     stickerStage.setAttribute("data-motion", state);
-
-    stickerTimers.push(window.setTimeout(() => {
-      if (run !== stickerRun) return;
-      setStickerPose(state);
-      const activePose = stickerPoses.find((pose) => pose.dataset.characterPose === state);
-      activePose?.classList.add("is-entering", "is-performing");
-      stickerTimers.push(window.setTimeout(() => activePose?.classList.remove("is-entering"), 120));
-    }, 70));
-
-    stickerTimers.push(window.setTimeout(() => finishStickerAction(run), stickerDurations[state]));
+    stickerTimers.push(window.setTimeout(() => { void activatePose(); }, 70));
   }
 
   function stickerDragEnabled(event: PointerEvent) {
@@ -353,6 +378,15 @@
   }
 
   stickerActions.forEach((action) => {
+    const primePose = () => {
+      const state = action.dataset.stickerAction as StickerState | undefined;
+      if (state) void loadStickerPose(state);
+    };
+    action.addEventListener("pointerenter", (event) => {
+      if (event.pointerType !== "touch") primePose();
+    }, { passive: true });
+    action.addEventListener("focus", primePose, { passive: true });
+
     action.addEventListener("click", (event) => {
       if (performance.now() < (suppressStickerClickUntil.get(action) ?? 0)) {
         event.preventDefault();
@@ -671,7 +705,7 @@
       const maxPinnedTilt = root.classList.contains("archive-books-sticker") ? 3 : 5;
       state.rotateX = Math.max(-maxPinnedTilt, Math.min(maxPinnedTilt, state.baseRotateX - (y / 20) * 3.2));
       state.rotateY = Math.max(-3, Math.min(3, state.baseRotateY + (x / 20) * 1.8));
-      state.rotateZ = Math.max(-maxPinnedTilt, Math.min(maxPinnedTilt, state.baseRotateZ + (x / 20) * 4.8));
+      state.rotateZ = Math.max(-maxPinnedTilt, Math.min(maxPinnedTilt, state.baseRotateZ - (x / 20) * 4.8));
       applyPinnedStickerMotion(state);
     });
 
@@ -949,6 +983,17 @@
     reduceMotion.addEventListener("change", scheduleNarrativeMotion);
     finePointer.addEventListener("change", scheduleNarrativeMotion);
   }
+
+  window.addEventListener("pagehide", () => {
+    if (sparkFrame) cancelAnimationFrame(sparkFrame);
+    if (magnetFrame) cancelAnimationFrame(magnetFrame);
+    if (narrativeFrame) cancelAnimationFrame(narrativeFrame);
+    clearStickerTimers();
+    pinnedStickerStates.forEach((state) => {
+      stopPinnedStickerSpring(state);
+      stopPinnedStickerSequence(state);
+    });
+  }, { once: true });
 </script>
 
 <style>
@@ -963,6 +1008,9 @@
 
   [data-magnet] {
     transform-origin: center;
+  }
+
+  [data-magnet][data-magnet-active] {
     will-change: transform;
   }
 </style>

@@ -424,12 +424,12 @@
 @media (max-width: 719px) {
   .archive-page {
     width: 100%;
-    padding: 78px var(--page-gutter) 96px;
+    padding: 68px var(--page-gutter) 82px;
   }
 
   .archive-heading {
-    min-height: 70px;
-    padding: 20px 4px 14px 15px;
+    min-height: 48px;
+    padding: 12px 4px 9px 15px;
   }
 
   .archive-heading p {

@@ -143,6 +143,11 @@ button {
     rotateY(var(--pinned-rotate-y))
     rotateZ(calc(var(--pinned-rest-rotate-z) + var(--pinned-rotate-z)));
   transform-origin: var(--pin-left) var(--pin-top);
+}
+
+.pinned-sticker.is-wobbling .pinned-sticker-body,
+.pinned-sticker.is-dragging .pinned-sticker-body,
+.pinned-sticker.is-pressed .pinned-sticker-body {
   will-change: transform;
 }
 
@@ -1410,7 +1415,8 @@ main {
   }
 
   .post-header h1 {
-    font-size: 2.45rem;
+    font-size: 2.15rem;
+    line-height: 1.12;
   }
 
   .prose {
@@ -1418,14 +1424,14 @@ main {
   }
 
   .about-page {
-    padding-top: 100px;
-    padding-bottom: 100px;
+    padding-top: 88px;
+    padding-bottom: 76px;
   }
 
   .about-heading {
     display: grid;
-    min-height: 132px;
-    margin-bottom: 48px;
+    min-height: 124px;
+    margin-bottom: 34px;
     padding-right: 96px;
     padding-bottom: 22px;
   }
@@ -1439,7 +1445,7 @@ main {
   }
 
   .about-columns section + section {
-    margin-top: 60px;
+    margin-top: 44px;
   }
 
   .about-contact-section {

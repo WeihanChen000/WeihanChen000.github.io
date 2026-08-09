@@ -9,6 +9,12 @@ const friends = [
     avatar: "https://blog.flurry.top/apple-touch-icon.png",
     description: "记录技术和生活",
   },
+  {
+    name: "Yuxi Qian",
+    url: "https://lkbrain.github.io/",
+    avatar: "https://lkbrain.github.io/profile.webp",
+    description: "AI4EDA 与芯片设计",
+  },
 ];
 ---
 
@@ -22,7 +28,7 @@ const friends = [
       <h1>友链</h1>
     </header>
     <div class="friend-files">
-      {friends.map((friend) => (
+      {friends.map((friend, index) => (
         <a
           class="friend-file"
           href={friend.url}
@@ -37,7 +43,8 @@ const friends = [
               alt=""
               width="180"
               height="180"
-              loading="eager"
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchpriority={index === 0 ? "high" : "low"}
               decoding="async"
               referrerpolicy="no-referrer"
             />

@@ -14,7 +14,6 @@ const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
   title="日志"
   description="Weihan Chen 的个人工作日志。"
   bodyClass="archive-body"
-  preloadImages={["assets/stickers/prop-books.webp"]}
 >
   <section class="archive-page">
     <header class="archive-heading">
@@ -23,10 +22,12 @@ const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
 
     <PinnedSticker
       class="archive-books-sticker desktop-easter-egg"
-      src="assets/stickers/prop-books.webp"
+      src="assets/stickers/prop-books-400.webp"
       label="轻轻摆动书本贴纸"
       width={1171}
       height={920}
+      imageWidth={400}
+      imageHeight={453}
       fastener="pin"
       tone="copper"
     />

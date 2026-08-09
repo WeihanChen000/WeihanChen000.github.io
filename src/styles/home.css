@@ -247,7 +247,6 @@
   display: block;
   transform-origin: 50% 78%;
   transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
 }
 
 .home-page .hero-character-button.is-pressed .sticker-character-stack,
@@ -271,7 +270,6 @@
   transform-origin: 50% 72%;
   transition: opacity 100ms steps(2, jump-none), transform 100ms steps(2, jump-none),
     filter 180ms ease;
-  will-change: opacity, transform;
 }
 
 .home-page .sticker-character-pose.is-active {
@@ -1209,6 +1207,9 @@
       min-height 520ms cubic-bezier(0.22, 1, 0.36, 1),
       transform 440ms cubic-bezier(0.22, 1, 0.36, 1),
       filter 220ms ease;
+  }
+
+  .home-page .journal-stack[data-deck-active] .journal-card {
     will-change: height, transform;
   }
 
@@ -1833,23 +1834,7 @@
 }
 
 .home-page .project-note-offset::before {
-  position: absolute;
-  z-index: 0;
-  inset: 3% 2% 0;
-  border-radius:
-    1px 1px var(--paper-curve-right) var(--paper-curve-left) /
-    1px 1px var(--paper-curve-right-depth) var(--paper-curve-left-depth);
-  box-shadow:
-    1px 3px 4px rgba(12, 12, 12, 0.24),
-    2px 7px 10px rgba(12, 12, 12, 0.13);
-  opacity: 0.46;
-  pointer-events: none;
-  transform: translateZ(-3px);
-  transition:
-    inset 480ms cubic-bezier(0.2, 0.76, 0.2, 1),
-    box-shadow 480ms cubic-bezier(0.2, 0.76, 0.2, 1),
-    opacity 260ms ease;
-  content: "";
+  content: none;
 }
 
 /* Project links stay readable while the reveal only supplies positional motion. */
@@ -1865,6 +1850,10 @@
   transform-origin: 50% 8px;
   transform-style: preserve-3d;
   transition: transform 500ms cubic-bezier(0.18, 0.78, 0.16, 1);
+}
+
+.home-page .project-note-slot:hover .project-note-breeze,
+.home-page .project-note-slot:focus-within .project-note-breeze {
   will-change: transform;
 }
 
@@ -1888,8 +1877,7 @@
   background-size: auto, 180px 180px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 2px rgba(12, 12, 12, 0.16),
-    0 1px 0 color-mix(in srgb, var(--note-edge) 84%, var(--register-gray));
+    inset 0 -1px 2px rgba(12, 12, 12, 0.16);
   clip-path: none;
   pointer-events: none;
   transform: scaleY(0.34) rotateZ(var(--curl-z)) translateZ(-1px);
@@ -1901,29 +1889,7 @@
 }
 
 .home-page .project-note-breeze::after {
-  position: absolute;
-  z-index: -1;
-  right: 2.6%;
-  bottom: -10px;
-  left: 2.4%;
-  height: 15px;
-  border-radius: 0 0 48% 52% / 0 0 70% 74%;
-  background: linear-gradient(
-    to bottom,
-    rgba(12, 12, 12, 0.3) 0,
-    rgba(12, 12, 12, 0.19) 2px,
-    rgba(12, 12, 12, 0.08) 7px,
-    transparent 100%
-  );
-  box-shadow: 2px 5px 9px rgba(12, 12, 12, 0.11);
-  filter: blur(0.45px);
-  opacity: 0.72;
-  pointer-events: none;
-  transform: translateZ(-4px);
-  transition:
-    box-shadow 430ms cubic-bezier(0.2, 0.76, 0.2, 1),
-    opacity 260ms ease;
-  content: "";
+  content: none;
 }
 
 .home-page .project-index .project-row.project-note {
@@ -1951,9 +1917,7 @@
   background-size: auto, 180px 180px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -1px 0 color-mix(in srgb, var(--note-edge) 46%, transparent),
-    0 1px 1px rgba(0, 0, 0, 0.14),
-    0 3px 6px rgba(0, 0, 0, 0.16);
+    inset 0 -1px 0 color-mix(in srgb, var(--note-edge) 46%, transparent);
   clip-path: none;
   transform: translateZ(1px);
   transform-origin: 50% 8px;
@@ -1968,8 +1932,13 @@
   right: 0;
   left: 0;
   height: 15px;
-  border-bottom: 1px solid rgba(12, 12, 12, 0.045);
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.025));
+  border-bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(12, 12, 12, 0.095),
+    rgba(12, 12, 12, 0.04) 4px,
+    transparent 100%
+  );
   pointer-events: none;
   content: "";
 }
@@ -2197,39 +2166,15 @@
     transform: perspective(1200px) rotateX(var(--active-lift-x)) translateZ(10px);
   }
 
-  .home-page .project-note-slot:has(+ .project-note-slot + .project-note-slot:is(:hover, :focus-within)) .project-note-offset::before {
-    inset: 6% -1% -4%;
-    box-shadow:
-      3px 10px 10px rgba(12, 12, 12, 0.2),
-      5px 15px 18px rgba(12, 12, 12, 0.16);
-    opacity: 0.56;
-  }
-
   .home-page .project-note-slot:has(+ .project-note-slot + .project-note-slot:is(:hover, :focus-within)) .project-note-breeze::before {
     height: calc(var(--active-underside-height) * 0.52);
     transform: perspective(520px) rotateX(42deg) rotateZ(var(--curl-z)) translateZ(-3px);
   }
 
-  .home-page .project-note-slot:has(+ .project-note-slot + .project-note-slot:is(:hover, :focus-within)) .project-note-breeze::after {
-    bottom: -12px;
-    height: 22px;
-    background: linear-gradient(
-      to bottom,
-      rgba(12, 12, 12, 0.36) 0,
-      rgba(12, 12, 12, 0.22) 3px,
-      rgba(12, 12, 12, 0.09) 11px,
-      transparent 100%
-    );
-    box-shadow: 3px 8px 14px rgba(12, 12, 12, 0.16);
-    opacity: 0.8;
-  }
-
   .home-page .project-note-slot:has(+ .project-note-slot + .project-note-slot:is(:hover, :focus-within)) .project-row.project-note {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.28),
-      inset 0 -1px 0 color-mix(in srgb, var(--note-edge) 62%, transparent),
-      0 1px 0 color-mix(in srgb, var(--note-edge) 82%, var(--register-gray)),
-      4px 10px 14px rgba(12, 12, 12, 0.22);
+      inset 0 -1px 0 color-mix(in srgb, var(--note-edge) 62%, transparent);
   }
 
 }
@@ -2456,8 +2401,9 @@
   }
 
   .home-page .sticker-prop[data-sticker-action="guitar"] {
-    top: 55%;
-    right: 14%;
+    top: 50%;
+    right: auto;
+    left: -23%;
     width: 74px;
     height: 84px;
   }
@@ -2561,11 +2507,11 @@
   }
 
   .home-page .journal-card {
-    min-height: 61svh;
+    min-height: clamp(390px, 52svh, 460px);
   }
 
   .home-page .journal-card-link {
-    min-height: 61svh;
+    min-height: clamp(390px, 52svh, 460px);
     padding: 24px 22px 26px;
   }
 

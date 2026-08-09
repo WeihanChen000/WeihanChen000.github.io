@@ -194,7 +194,7 @@ html:has(body.friends-page) {
 
 @media (max-width: 719px) {
   .link-directory {
-    padding: 110px 20px 72px;
+    padding: 96px 20px 64px;
   }
 
   .friend-heading {
@@ -210,14 +210,14 @@ html:has(body.friends-page) {
   }
 
   .friend-files {
-    margin-top: 42px;
+    margin-top: 34px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 36px;
+    gap: 28px;
   }
 
   .friend-file {
-    min-height: 224px;
-    padding: 30px 24px 24px;
+    min-height: 196px;
+    padding: 28px 22px 20px;
     grid-template-columns: 78px minmax(0, 1fr);
     gap: 18px 20px;
     transform: rotate(-0.3deg);

@@ -4,6 +4,8 @@ interface Props {
   label: string;
   width: number;
   height: number;
+  imageWidth?: number;
+  imageHeight?: number;
   class?: string;
   fastener?: "magnet" | "pin" | "tape";
   tone?: "carbon" | "steel" | "copper";
@@ -15,6 +17,8 @@ const {
   label,
   width,
   height,
+  imageWidth = width,
+  imageHeight = height,
   class: className = "",
   fastener = "pin",
   tone = "copper",
@@ -40,8 +44,8 @@ const base = import.meta.env.BASE_URL;
     <img
       src={`${base}${src}`}
       alt=""
-      width={width}
-      height={height}
+      width={imageWidth}
+      height={imageHeight}
       loading={loading}
       decoding="async"
       draggable="false"

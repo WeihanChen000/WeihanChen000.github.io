@@ -4,7 +4,7 @@ description: "记录潮流羊角色从 2D 概念图、Blender 程序化建模到
 pubDate: 2026-08-07
 tags: ["角色设计", "Blender", "Three.js"]
 featured: true
-cover: "assets/character/sheep-material-board.png"
+cover: "assets/character/sheep-material-board-1200.webp"
 coverAlt: "潮流羊角色与帽子、耳机、手表、鞋服等材质设定板"
 ---
 
