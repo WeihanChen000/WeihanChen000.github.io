@@ -286,16 +286,4 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
     <ProjectGrid />
   </section>
 
-  <script>
-    const hero = document.querySelector<HTMLElement>("[data-home-hero]");
-    const header = document.querySelector<HTMLElement>(".site-header");
-
-    if (hero && header) {
-      const headerThemeObserver = new IntersectionObserver(
-        ([entry]) => header.classList.toggle("is-past-hero", !entry.isIntersecting),
-        { threshold: 0, rootMargin: "-72px 0px 0px 0px" },
-      );
-      headerThemeObserver.observe(hero);
-    }
-  </script>
 </BaseLayout>

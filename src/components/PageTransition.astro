@@ -1,0 +1,280 @@
+<div
+  class="page-transition"
+  data-page-transition
+  transition:persist="page-transition"
+  aria-hidden="true"
+>
+  <div class="page-transition__sheet" data-page-transition-sheet>
+    <span class="page-transition__register-line"></span>
+  </div>
+</div>
+
+<script>
+  import type {
+    TransitionBeforePreparationEvent,
+    TransitionBeforeSwapEvent,
+  } from "astro:transitions/client";
+
+  type TransitionMetrics = {
+    from: string;
+    to: string;
+    navigationStart: number;
+    paperStart?: number;
+    coverEnd?: number;
+    swap?: number;
+    revealStart?: number;
+    pageLoad?: number;
+    complete?: number;
+  };
+
+  type TransitionWindow = typeof window & {
+    __weihanMotionCleanup?: () => void;
+    __weihanTransitionMetrics?: TransitionMetrics[];
+  };
+
+  const transitionWindow = window as TransitionWindow;
+  const overlay = document.querySelector<HTMLElement>("[data-page-transition]");
+  const sheet = overlay?.querySelector<HTMLElement>("[data-page-transition-sheet]");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const transitionMetrics = transitionWindow.__weihanTransitionMetrics ?? [];
+  transitionWindow.__weihanTransitionMetrics = transitionMetrics;
+
+  let activeAnimation: Animation | null = null;
+  let activeMetric: TransitionMetrics | null = null;
+  let revealFrame = 0;
+
+  const restingTransform = "translate3d(-32vw, 136%, 0) rotate(-2.5deg)";
+  const coveredTransform = "translate3d(0, 0, 0) rotate(-2.5deg)";
+  const departedTransform = "translate3d(32vw, -136%, 0) rotate(-2.5deg)";
+
+  function syncMetrics() {
+    if (overlay) overlay.dataset.transitionMetrics = JSON.stringify(transitionMetrics);
+  }
+
+  function durationForViewport() {
+    return window.innerWidth <= 719 ? 205 : 260;
+  }
+
+  function cancelActiveAnimation(preserveCurrent = false) {
+    if (!activeAnimation) return;
+    if (preserveCurrent) {
+      try {
+        activeAnimation.commitStyles();
+      } catch {
+        // Older browsers can continue from the nearest authored transform.
+      }
+    }
+    activeAnimation.cancel();
+    activeAnimation = null;
+  }
+
+  function hideOverlay() {
+    if (!overlay || !sheet) return;
+    cancelActiveAnimation();
+    overlay.classList.remove("is-active", "is-reduced-motion");
+    sheet.style.removeProperty("transform");
+    sheet.style.removeProperty("opacity");
+  }
+
+  async function coverPage(signal: AbortSignal) {
+    if (!overlay || !sheet || signal.aborted) return;
+
+    cancelActiveAnimation(true);
+    overlay.classList.add("is-active");
+    overlay.classList.toggle("is-reduced-motion", reduceMotion.matches);
+    activeMetric && (activeMetric.paperStart = performance.now());
+    syncMetrics();
+
+    const currentTransform = getComputedStyle(sheet).transform;
+    const reduced = reduceMotion.matches;
+    activeAnimation = sheet.animate(
+      reduced
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [
+            { transform: currentTransform === "none" ? restingTransform : currentTransform },
+            { transform: coveredTransform },
+          ],
+      {
+        duration: reduced ? 70 : durationForViewport(),
+        easing: reduced ? "ease-out" : "cubic-bezier(0.4, 0, 0.7, 0.6)",
+        fill: "forwards",
+      },
+    );
+
+    const animation = activeAnimation;
+    const abort = () => {
+      if (activeAnimation !== animation) return;
+      cancelActiveAnimation(true);
+    };
+    signal.addEventListener("abort", abort, { once: true });
+
+    try {
+      await animation.finished;
+      if (!signal.aborted && activeAnimation === animation) {
+        animation.commitStyles();
+        animation.cancel();
+        activeAnimation = null;
+        activeMetric && (activeMetric.coverEnd = performance.now());
+        syncMetrics();
+      }
+    } catch {
+      // Superseded navigations cancel the current sheet instead of stacking another one.
+    } finally {
+      signal.removeEventListener("abort", abort);
+    }
+  }
+
+  function revealPage() {
+    if (!overlay || !sheet) return;
+
+    cancelActiveAnimation(true);
+    const reduced = reduceMotion.matches;
+    activeMetric && (activeMetric.revealStart = performance.now());
+    syncMetrics();
+    activeAnimation = sheet.animate(
+      reduced
+        ? [{ opacity: 1 }, { opacity: 0 }]
+        : [
+            { transform: coveredTransform },
+            { transform: departedTransform },
+          ],
+      {
+        duration: reduced ? 80 : durationForViewport(),
+        easing: reduced ? "ease-in" : "cubic-bezier(0.3, 0.4, 0.6, 1)",
+        fill: "forwards",
+      },
+    );
+
+    const animation = activeAnimation;
+    animation.finished.then(() => {
+      if (activeAnimation !== animation) return;
+      activeMetric && (activeMetric.complete = performance.now());
+      syncMetrics();
+      hideOverlay();
+      activeMetric = null;
+    }).catch(() => {});
+  }
+
+  document.addEventListener("astro:before-preparation", (event) => {
+    const transitionEvent = event as TransitionBeforePreparationEvent;
+    const originalLoader = transitionEvent.loader;
+    activeMetric = {
+      from: transitionEvent.from.href,
+      to: transitionEvent.to.href,
+      navigationStart: performance.now(),
+    };
+    transitionMetrics.push(activeMetric);
+    if (transitionMetrics.length > 12) transitionMetrics.shift();
+    syncMetrics();
+
+    transitionEvent.loader = async () => {
+      await originalLoader();
+      if (!transitionEvent.signal.aborted && !transitionEvent.defaultPrevented) {
+        await coverPage(transitionEvent.signal);
+      }
+    };
+  });
+
+  document.addEventListener("astro:before-swap", (event) => {
+    const transitionEvent = event as TransitionBeforeSwapEvent;
+    activeMetric && (activeMetric.swap = performance.now());
+    syncMetrics();
+    transitionWindow.__weihanMotionCleanup?.();
+    if (transitionEvent.signal.aborted) hideOverlay();
+  });
+
+  document.addEventListener("astro:after-swap", () => {
+    window.cancelAnimationFrame(revealFrame);
+    revealFrame = window.requestAnimationFrame(revealPage);
+  });
+
+  document.addEventListener("astro:page-load", () => {
+    activeMetric && (activeMetric.pageLoad = performance.now());
+    syncMetrics();
+  });
+
+  window.addEventListener("pagehide", () => {
+    window.cancelAnimationFrame(revealFrame);
+    hideOverlay();
+  }, { once: true });
+</script>
+
+<style>
+  .page-transition {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    visibility: hidden;
+    contain: strict;
+  }
+
+  .page-transition.is-active {
+    visibility: visible;
+  }
+
+  .page-transition__sheet {
+    position: absolute;
+    inset: -28vh -24vw;
+    background-color: var(--wool);
+    background-image:
+      radial-gradient(circle at 24% 18%, rgba(12, 12, 12, 0.022) 0 0.65px, transparent 0.85px),
+      radial-gradient(circle at 72% 64%, rgba(214, 138, 24, 0.015) 0 0.7px, transparent 0.9px),
+      linear-gradient(96deg, rgba(255, 255, 255, 0.13), transparent 24%, rgba(12, 12, 12, 0.015) 78%, transparent);
+    background-size: 9px 11px, 13px 15px, 100% 100%;
+    box-shadow: 0 -7px 18px rgba(12, 12, 12, 0.14);
+    transform: translate3d(-32vw, 136%, 0) rotate(-2.5deg);
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+  }
+
+  .page-transition__sheet::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.64);
+    content: "";
+  }
+
+  .page-transition__register-line {
+    position: absolute;
+    top: 7px;
+    right: 0;
+    left: 0;
+    height: 2px;
+    background: var(--copper);
+    opacity: 0.72;
+  }
+
+  .page-transition.is-active .page-transition__sheet {
+    will-change: transform, opacity;
+  }
+
+  .page-transition.is-reduced-motion .page-transition__sheet {
+    inset: 0;
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+  }
+
+  :global(::view-transition-old(root)),
+  :global(::view-transition-new(root)) {
+    animation: none;
+  }
+
+  @media (max-width: 719px) {
+    .page-transition__sheet {
+      inset: -24vh -42vw;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-transition__register-line,
+    .page-transition__sheet::after {
+      display: none;
+    }
+  }
+</style>

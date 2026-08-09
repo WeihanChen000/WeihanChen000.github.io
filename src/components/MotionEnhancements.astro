@@ -1,6 +1,29 @@
 <canvas class="click-spark-layer" data-click-spark-layer aria-hidden="true"></canvas>
 
 <script>
+  type MotionWindow = typeof window & {
+    __weihanMotionCleanup?: () => void;
+  };
+
+  const motionWindow = window as MotionWindow;
+
+  function initializeMotionEnhancements() {
+    motionWindow.__weihanMotionCleanup?.();
+    const motionAbortController = new AbortController();
+    const motionObservers: IntersectionObserver[] = [];
+
+  function listen(
+    target: EventTarget,
+    type: string,
+    listener: any,
+    options: AddEventListenerOptions | boolean = {},
+  ) {
+    const normalized = typeof options === "boolean"
+      ? { capture: options, signal: motionAbortController.signal }
+      : { ...options, signal: motionAbortController.signal };
+    target.addEventListener(type, listener, normalized);
+  }
+
   type Spark = {
     x: number;
     y: number;
@@ -73,7 +96,7 @@
     && !reduceMotion.matches
   ) {
     resizeSparkCanvas();
-    window.addEventListener("resize", resizeSparkCanvas, { passive: true });
+    listen(window, "resize", resizeSparkCanvas, { passive: true });
   } else {
     sparkCanvas?.remove();
   }
@@ -249,25 +272,25 @@
   characterTrigger?.addEventListener("pointercancel", () => characterTrigger.classList.remove("is-pressed"));
   characterTrigger?.addEventListener("pointerleave", () => characterTrigger.classList.remove("is-pressed"));
 
-  document.addEventListener("pointerdown", (event) => {
+  listen(document, "pointerdown", (event: PointerEvent) => {
     if (!characterTrigger || !characterBubble || characterBubble.hidden) return;
     if (!(event.target instanceof Node)) return;
     if (characterTrigger.contains(event.target) || characterBubble.contains(event.target)) return;
     setCharacterBubble(false);
   });
 
-  document.addEventListener("keydown", (event) => {
+  listen(document, "keydown", (event: KeyboardEvent) => {
     if (event.key === "Escape" && characterBubble && !characterBubble.hidden) {
       setCharacterBubble(false, true);
     }
   });
 
-  window.addEventListener("pagehide", () => {
+  listen(window, "pagehide", () => {
     window.clearTimeout(bubbleCloseTimer);
     clearCharacterReactionMotion();
   });
 
-  reduceMotion.addEventListener("change", () => {
+  listen(reduceMotion, "change", () => {
     clearCharacterReactionMotion();
     characterTrigger?.classList.remove("is-pressed");
     if (characterBubble && characterTrigger?.getAttribute("aria-expanded") === "true") {
@@ -446,7 +469,7 @@
     action.addEventListener("pointercancel", () => action.classList.remove("is-pressed"));
   });
 
-  reduceMotion.addEventListener("change", () => {
+  listen(reduceMotion, "change", () => {
     clearStickerTimers();
     finishStickerAction(stickerRun);
     stickerActions.forEach((action) => {
@@ -726,7 +749,7 @@
     });
   });
 
-  reduceMotion.addEventListener("change", () => {
+  listen(reduceMotion, "change", () => {
     pinnedStickerStates.forEach((state) => {
       stopPinnedStickerSpring(state);
       stopPinnedStickerSequence(state);
@@ -752,10 +775,22 @@
         revealObserver.unobserve(entry.target);
       });
     }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
+    motionObservers.push(revealObserver);
 
     revealItems.forEach((item) => revealObserver.observe(item));
   } else {
     revealItems.forEach((item) => item.classList.add("is-revealed"));
+  }
+
+  const homeHero = document.querySelector<HTMLElement>("[data-home-hero]");
+  const siteHeader = document.querySelector<HTMLElement>(".site-header");
+  if (homeHero && siteHeader) {
+    const headerThemeObserver = new IntersectionObserver(
+      ([entry]) => siteHeader.classList.toggle("is-past-hero", !entry.isIntersecting),
+      { threshold: 0, rootMargin: "-72px 0px 0px 0px" },
+    );
+    headerThemeObserver.observe(homeHero);
+    motionObservers.push(headerThemeObserver);
   }
 
   type MagnetState = {
@@ -832,14 +867,14 @@
     && finePointer.matches
     && !reduceMotion.matches
   ) {
-    document.addEventListener("pointermove", (event) => {
+    listen(document, "pointermove", (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
       pointerX = event.clientX;
       pointerY = event.clientY;
       scheduleMagnets();
     }, { passive: true });
 
-    document.addEventListener("pointerdown", (event) => {
+    listen(document, "pointerdown", (event: PointerEvent) => {
       if (!(event.target instanceof Element)) return;
       const magnet = event.target.closest<HTMLElement>("[data-magnet]");
       const state = magnetStates.find((candidate) => candidate.element === magnet);
@@ -853,10 +888,10 @@
       scheduleMagnets();
     };
 
-    document.addEventListener("pointerup", releaseMagnets, { passive: true });
-    document.addEventListener("pointercancel", releaseMagnets, { passive: true });
-    window.addEventListener("scroll", scheduleMagnets, { passive: true });
-    document.documentElement.addEventListener("pointerleave", () => {
+    listen(document, "pointerup", releaseMagnets, { passive: true });
+    listen(document, "pointercancel", releaseMagnets, { passive: true });
+    listen(window, "scroll", scheduleMagnets, { passive: true });
+    listen(document.documentElement, "pointerleave", () => {
       pointerX = -1000;
       pointerY = -1000;
       scheduleMagnets();
@@ -922,21 +957,21 @@
       });
     });
 
-    document.addEventListener("pointerdown", (event) => {
+    listen(document, "pointerdown", (event: PointerEvent) => {
       if (!selectedJournalCard || !(event.target instanceof Node)) return;
       if (!journalStack.contains(event.target)) clearJournalDeck();
     });
 
-    document.addEventListener("keydown", (event) => {
+    listen(document, "keydown", (event: KeyboardEvent) => {
       if (event.key === "Escape" && selectedJournalCard) clearJournalDeck();
     });
 
     const resetJournalDeck = () => {
       if (!journalDeckEnabled()) clearJournalDeck();
     };
-    window.addEventListener("resize", resetJournalDeck, { passive: true });
-    reduceMotion.addEventListener("change", resetJournalDeck);
-    finePointer.addEventListener("change", resetJournalDeck);
+    listen(window, "resize", resetJournalDeck, { passive: true });
+    listen(reduceMotion, "change", resetJournalDeck);
+    listen(finePointer, "change", resetJournalDeck);
   }
 
   const editorialFocus = document.querySelector<HTMLElement>("[data-editorial-focus]");
@@ -978,22 +1013,38 @@
 
   if (editorialFocus) {
     scheduleNarrativeMotion();
-    window.addEventListener("scroll", scheduleNarrativeMotion, { passive: true });
-    window.addEventListener("resize", scheduleNarrativeMotion, { passive: true });
-    reduceMotion.addEventListener("change", scheduleNarrativeMotion);
-    finePointer.addEventListener("change", scheduleNarrativeMotion);
+    listen(window, "scroll", scheduleNarrativeMotion, { passive: true });
+    listen(window, "resize", scheduleNarrativeMotion, { passive: true });
+    listen(reduceMotion, "change", scheduleNarrativeMotion);
+    listen(finePointer, "change", scheduleNarrativeMotion);
   }
 
-  window.addEventListener("pagehide", () => {
+  function cleanupMotionEnhancements() {
+    motionAbortController.abort();
     if (sparkFrame) cancelAnimationFrame(sparkFrame);
     if (magnetFrame) cancelAnimationFrame(magnetFrame);
     if (narrativeFrame) cancelAnimationFrame(narrativeFrame);
+    window.clearTimeout(bubbleCloseTimer);
+    clearCharacterReactionMotion();
     clearStickerTimers();
+    motionObservers.forEach((observer) => observer.disconnect());
     pinnedStickerStates.forEach((state) => {
       stopPinnedStickerSpring(state);
       stopPinnedStickerSequence(state);
     });
-  }, { once: true });
+    if (motionWindow.__weihanMotionCleanup === cleanupMotionEnhancements) {
+      delete motionWindow.__weihanMotionCleanup;
+    }
+  }
+
+    motionWindow.__weihanMotionCleanup = cleanupMotionEnhancements;
+    listen(window, "pagehide", cleanupMotionEnhancements, { once: true });
+  }
+
+  initializeMotionEnhancements();
+  document.addEventListener("astro:page-load", () => {
+    if (!motionWindow.__weihanMotionCleanup) initializeMotionEnhancements();
+  });
 </script>
 
 <style>

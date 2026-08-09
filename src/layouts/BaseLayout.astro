@@ -2,6 +2,8 @@
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import MotionEnhancements from "../components/MotionEnhancements.astro";
+import PageTransition from "../components/PageTransition.astro";
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
 interface Props {
@@ -39,6 +41,7 @@ const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | 
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#171719" />
+    <ClientRouter fallback="swap" />
     <link rel="canonical" href={canonicalURL} />
     <link rel="icon" type="image/png" sizes="64x64" href={`${base}assets/character/favicon.png`} />
     <link rel="alternate" type="application/rss+xml" title="Weihan Chen Personal Blog" href={`${base}rss.xml`} />
@@ -68,6 +71,7 @@ const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | 
     <title>{fullTitle}</title>
   </head>
   <body class={bodyClass}>
+    <PageTransition />
     <a class="skip-link" href="#content">跳到正文</a>
     <Header />
     <main id="content">

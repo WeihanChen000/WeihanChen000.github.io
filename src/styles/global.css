@@ -292,6 +292,13 @@ button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
+  transform-origin: center;
+  transition: transform 100ms ease-out;
+}
+
+.site-nav a:active,
+.wordmark:active {
+  transform: scale(0.97);
 }
 
 .site-nav a::after {
