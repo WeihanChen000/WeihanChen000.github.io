@@ -6,9 +6,6 @@ interface Project {
   description: string;
   stack: string;
   href: string;
-  image?: string;
-  imageAlt?: string;
-  featured?: boolean;
 }
 
 const projects: Project[] = [
@@ -19,9 +16,6 @@ const projects: Project[] = [
     description: "把收集、提炼、研究和输出连成一条可追溯的学习路径。",
     stack: "React · Obsidian · Ollama",
     href: "https://github.com/WeihanChen000/zhixu",
-    image: "assets/projects/zhixu-dashboard-1200.webp",
-    imageAlt: "知序首页，展示今日学习、知识流转和最近进展",
-    featured: true,
   },
   {
     index: "02",
@@ -41,14 +35,6 @@ const projects: Project[] = [
   },
   {
     index: "04",
-    name: "AI 笔记整理",
-    type: "B站学习模式 / 模块",
-    description: "让课程问题和笔记留在同一条学习流程里。",
-    stack: "JavaScript · Local-first",
-    href: "https://github.com/WeihanChen000/bilibili-study-mode",
-  },
-  {
-    index: "05",
     name: "每日学习总结",
     type: "B站学习模式 / 模块",
     description: "把分集进度和当日笔记收成一页记录。",
@@ -56,7 +42,7 @@ const projects: Project[] = [
     href: "https://github.com/WeihanChen000/bilibili-study-mode",
   },
   {
-    index: "06",
+    index: "05",
     name: "英语抽背",
     type: "随身语言小站 / 模块",
     description: "本地运行的短时抽背与复习流程。",
@@ -64,7 +50,7 @@ const projects: Project[] = [
     href: "https://github.com/WeihanChen000/usagi-language-pet",
   },
   {
-    index: "07",
+    index: "06",
     name: "粤语练习",
     type: "随身语言小站 / 模块",
     description: "用桌宠承载可重复的日常发音练习。",
@@ -72,8 +58,6 @@ const projects: Project[] = [
     href: "https://github.com/WeihanChen000/usagi-language-pet",
   },
 ];
-
-const base = import.meta.env.BASE_URL;
 
 const collagePositions = [
   { x: "0%", y: "0px", rotate: "-1.4deg" },
@@ -92,7 +76,7 @@ const collagePositions = [
         const position = collagePositions[index % collagePositions.length];
         return (
           <div
-            class:list={["project-note-slot", project.featured && "project-note-slot--featured"]}
+            class="project-note-slot"
             data-motion-reveal
             style={`--motion-order: ${index}; --collage-x: ${position.x}; --collage-y: ${position.y}; --collage-rotate: ${position.rotate}; --collage-z: ${projects.length - index}`}
           >
@@ -100,7 +84,7 @@ const collagePositions = [
             <div class="project-note-offset">
               <div class="project-note-breeze">
                 <a
-                  class:list={["project-row", "project-note", project.featured && "project-note--featured"]}
+                  class="project-row project-note"
                   href={project.href}
                   target="_blank"
                   rel="noreferrer"
@@ -110,20 +94,6 @@ const collagePositions = [
                     <span>{project.type}</span>
                     <h3>{project.name}</h3>
                   </div>
-                  {project.image && (
-                    <figure class="project-preview">
-                      <img
-                        src={`${base}${project.image}`}
-                        srcset={`${base}${project.image.replace("-1200.webp", "-360.webp")} 360w, ${base}${project.image.replace("-1200.webp", "-720.webp")} 720w, ${base}${project.image} 1200w`}
-                        sizes="(max-width: 719px) 78vw, 760px"
-                        alt={project.imageAlt}
-                        width="1200"
-                        height="750"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </figure>
-                  )}
                   <p>{project.description}</p>
                   <span class="project-stack">{project.stack}</span>
                   <span class="project-arrow" data-magnet aria-hidden="true">↗</span>
