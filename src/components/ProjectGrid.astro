@@ -1,7 +1,30 @@
 ---
-const projects = [
+interface Project {
+  index: string;
+  name: string;
+  type: string;
+  description: string;
+  stack: string;
+  href: string;
+  image?: string;
+  imageAlt?: string;
+  featured?: boolean;
+}
+
+const projects: Project[] = [
   {
     index: "01",
+    name: "知序",
+    type: "个人知识库 / Local-first",
+    description: "把收集、提炼、研究和输出连成一条可追溯的学习路径。",
+    stack: "React · Obsidian · Ollama",
+    href: "https://github.com/WeihanChen000/zhixu",
+    image: "assets/projects/zhixu-dashboard-1200.webp",
+    imageAlt: "知序首页，展示今日学习、知识流转和最近进展",
+    featured: true,
+  },
+  {
+    index: "02",
     name: "B站学习模式",
     type: "浏览器扩展 / Windows",
     description: "把课程收藏夹变成安静、可持续的学习工作区。",
@@ -9,7 +32,7 @@ const projects = [
     href: "https://github.com/WeihanChen000/bilibili-study-mode",
   },
   {
-    index: "02",
+    index: "03",
     name: "随身语言小站",
     type: "桌面工具 / Python",
     description: "陪伴英语抽背与粤语练习的本地桌宠。",
@@ -17,7 +40,7 @@ const projects = [
     href: "https://github.com/WeihanChen000/usagi-language-pet",
   },
   {
-    index: "03",
+    index: "04",
     name: "AI 笔记整理",
     type: "B站学习模式 / 模块",
     description: "让课程问题和笔记留在同一条学习流程里。",
@@ -25,7 +48,7 @@ const projects = [
     href: "https://github.com/WeihanChen000/bilibili-study-mode",
   },
   {
-    index: "04",
+    index: "05",
     name: "每日学习总结",
     type: "B站学习模式 / 模块",
     description: "把分集进度和当日笔记收成一页记录。",
@@ -33,7 +56,7 @@ const projects = [
     href: "https://github.com/WeihanChen000/bilibili-study-mode",
   },
   {
-    index: "05",
+    index: "06",
     name: "英语抽背",
     type: "随身语言小站 / 模块",
     description: "本地运行的短时抽背与复习流程。",
@@ -41,7 +64,7 @@ const projects = [
     href: "https://github.com/WeihanChen000/usagi-language-pet",
   },
   {
-    index: "06",
+    index: "07",
     name: "粤语练习",
     type: "随身语言小站 / 模块",
     description: "用桌宠承载可重复的日常发音练习。",
@@ -49,6 +72,8 @@ const projects = [
     href: "https://github.com/WeihanChen000/usagi-language-pet",
   },
 ];
+
+const base = import.meta.env.BASE_URL;
 
 const collagePositions = [
   { x: "0%", y: "0px", rotate: "-1.4deg" },
@@ -67,7 +92,7 @@ const collagePositions = [
         const position = collagePositions[index % collagePositions.length];
         return (
           <div
-            class="project-note-slot"
+            class:list={["project-note-slot", project.featured && "project-note-slot--featured"]}
             data-motion-reveal
             style={`--motion-order: ${index}; --collage-x: ${position.x}; --collage-y: ${position.y}; --collage-rotate: ${position.rotate}; --collage-z: ${projects.length - index}`}
           >
@@ -75,7 +100,7 @@ const collagePositions = [
             <div class="project-note-offset">
               <div class="project-note-breeze">
                 <a
-                  class="project-row project-note"
+                  class:list={["project-row", "project-note", project.featured && "project-note--featured"]}
                   href={project.href}
                   target="_blank"
                   rel="noreferrer"
@@ -85,6 +110,20 @@ const collagePositions = [
                     <span>{project.type}</span>
                     <h3>{project.name}</h3>
                   </div>
+                  {project.image && (
+                    <figure class="project-preview">
+                      <img
+                        src={`${base}${project.image}`}
+                        srcset={`${base}${project.image.replace("-1200.webp", "-360.webp")} 360w, ${base}${project.image.replace("-1200.webp", "-720.webp")} 720w, ${base}${project.image} 1200w`}
+                        sizes="(max-width: 719px) 78vw, 760px"
+                        alt={project.imageAlt}
+                        width="1200"
+                        height="750"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </figure>
+                  )}
                   <p>{project.description}</p>
                   <span class="project-stack">{project.stack}</span>
                   <span class="project-arrow" data-magnet aria-hidden="true">↗</span>
