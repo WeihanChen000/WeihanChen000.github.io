@@ -872,7 +872,7 @@ main {
 .post-header {
   position: relative;
   margin: 40px 0 76px;
-  padding-bottom: 44px;
+  padding-bottom: 0;
   border-bottom: 1px solid rgba(23, 23, 25, 0.3);
 }
 
@@ -915,8 +915,9 @@ main {
   max-width: 850px;
   margin: 0;
   font-family: "Arial Black", "Microsoft YaHei", sans-serif;
-  font-size: 4.25rem;
+  font-size: clamp(2.8rem, 6.4vw, 4.9rem);
   line-height: 1.12;
+  text-wrap: balance;
 }
 
 .post-deck {
@@ -938,7 +939,31 @@ main {
 
 .tag-row {
   margin-top: 12px;
+  margin-bottom: 38px;
   color: var(--copper);
+}
+
+.post-cover {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border-top: 1px solid rgba(23, 23, 25, 0.3);
+  background: #e1ded6;
+}
+
+.post-cover::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  content: "";
+  pointer-events: none;
+}
+
+.post-cover img {
+  width: 100%;
+  aspect-ratio: 8 / 5;
+  object-fit: cover;
 }
 
 .prose {
@@ -970,6 +995,33 @@ main {
 .prose blockquote {
   margin-top: 0;
   margin-bottom: 1.35em;
+}
+
+.prose .post-media {
+  width: min(920px, calc(100vw - 48px));
+  margin: 3.2rem 0 3.4rem 50%;
+  transform: translateX(-50%);
+}
+
+.prose .post-media img,
+.prose .post-media picture {
+  display: block;
+  width: 100%;
+}
+
+.prose .post-media img {
+  height: auto;
+  border: 1px solid rgba(23, 23, 25, 0.18);
+  background: #e7e4dc;
+}
+
+.prose .post-media figcaption {
+  margin-top: 11px;
+  color: #706b64;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .prose a {

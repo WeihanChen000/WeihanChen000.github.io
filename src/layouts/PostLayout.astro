@@ -7,10 +7,24 @@ interface Props {
   pubDate: Date;
   updatedDate?: Date;
   tags?: string[];
+  cover?: string;
+  coverAlt?: string;
 }
 
-const { title, description, pubDate, updatedDate, tags = [] } = Astro.props;
+const {
+  title,
+  description,
+  pubDate,
+  updatedDate,
+  tags = [],
+  cover,
+  coverAlt = "",
+} = Astro.props;
 const base = import.meta.env.BASE_URL;
+const coverSrc = cover ? `${base}${cover.replace(/^\/+/, "")}` : undefined;
+const coverSrcSet = cover?.endsWith("-1200.webp")
+  ? `${base}${cover.replace(/-1200\.webp$/, "-360.webp")} 360w, ${base}${cover.replace(/-1200\.webp$/, "-720.webp")} 720w, ${coverSrc} 1200w`
+  : undefined;
 const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   year: "numeric",
   month: "long",
@@ -18,7 +32,12 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
 });
 ---
 
-<BaseLayout title={title} description={description} bodyClass="article-page">
+<BaseLayout
+  title={title}
+  description={description}
+  image={cover ?? "assets/character/sheep-hero.png"}
+  bodyClass="article-page"
+>
   <article class="post-page">
     <a class="back-link" href={`${base}archive/`}>&larr; 返回文章归档</a>
     <header class="post-header">
@@ -33,6 +52,21 @@ const dateFormat = new Intl.DateTimeFormat("zh-CN", {
       <div class="tag-row" aria-label="文章标签">
         {tags.map((tag) => <span>{tag}</span>)}
       </div>
+      {coverSrc && (
+        <figure class="post-cover">
+          <img
+            src={coverSrc}
+            srcset={coverSrcSet}
+            sizes="(max-width: 719px) calc(100vw - 32px), 960px"
+            alt={coverAlt}
+            width="1280"
+            height="800"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </figure>
+      )}
     </header>
     <div class="prose">
       <slot />

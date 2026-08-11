@@ -274,6 +274,7 @@
 
 .log-entry-cover img {
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   object-fit: cover;
 }
@@ -298,11 +299,11 @@
 }
 
 .log-entry.is-current .log-entry-link {
-  min-height: 338px;
-  padding-top: 38px;
-  padding-bottom: 40px;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 35%);
-  gap: 22px 48px;
+  min-height: 430px;
+  padding-top: 42px;
+  padding-bottom: 42px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 24px 54px;
   box-shadow: inset 15px 0 22px rgba(23, 22, 20, 0.075);
 }
 
@@ -318,8 +319,16 @@
 }
 
 .log-entry.is-current .log-entry-cover {
-  padding: 7px;
-  transform: rotate(-1.15deg);
+  align-self: stretch;
+  padding: 8px;
+  transform: rotate(-0.45deg);
+}
+
+.log-entry.is-current .log-entry-cover img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
 }
 
 .log-entry.is-aged .log-entry-link {
@@ -412,7 +421,8 @@
   }
 
   .log-entry.is-current .log-entry-link {
-    grid-template-columns: minmax(0, 1fr) minmax(190px, 32%);
+    min-height: 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 42%);
     gap: 20px 24px;
   }
 
@@ -542,6 +552,8 @@
   }
 
   .log-entry.is-current .log-entry-cover img {
+    height: auto;
+    aspect-ratio: 16 / 10;
     max-height: 190px;
   }
 
