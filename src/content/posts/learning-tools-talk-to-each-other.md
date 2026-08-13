@@ -4,8 +4,8 @@ description: "从一个不那么像债主的背词工具开始，我把 B 站、
 pubDate: 2026-08-10T20:00:00+08:00
 tags: ["DIY", "Codex", "学习工具"]
 featured: true
-cover: "assets/posts/learning-tools-connected/01-usagi-first-window.webp"
-coverAlt: "随身语言小站的英语抽背窗口，桌宠趴在窗口底部"
+cover: "assets/posts/learning-tools-connected/usagi-action-study-1200.webp"
+coverAlt: "乌萨奇动作概念图，展示跳伞、入水、平台交互和记忆反馈等连续动作"
 ---
 
 我想让我的学习工具互相串通。这念头是最近才有的。也不算有，准确地说，是最近才把它说清楚了。以前只是隐隐约约觉得哪里不对。
