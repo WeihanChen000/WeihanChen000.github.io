@@ -4,6 +4,8 @@ description: "从童年的梦、琴房里的眼泪，到后来关于意识与死
 pubDate: 2026-08-13T20:00:00+08:00
 tags: ["随笔", "死亡", "生命"]
 featured: true
+cover: "assets/posts/thoughts-on-death/notebook-at-night-1200.webp"
+coverAlt: "夜晚窗边的木桌上摊开一本手写笔记，钢笔横放在纸页与茶杯之间"
 ---
 
 我想我可以说是一个怕死的人。
