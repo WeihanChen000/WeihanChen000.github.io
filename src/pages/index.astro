@@ -36,6 +36,15 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
       ],
       sizes: "(max-width: 719px) 280px, 500px",
     },
+    {
+      src: "assets/stickers/sheep-guitar-640.webp",
+      srcset: [
+        { src: "assets/stickers/sheep-guitar-400.webp", width: 400 },
+        { src: "assets/stickers/sheep-guitar-640.webp", width: 640 },
+      ],
+      sizes: "(max-width: 719px) 280px, 500px",
+      fetchpriority: "low",
+    },
   ]}
 >
   <section class="hero" data-home-hero aria-labelledby="hero-title">
@@ -86,7 +95,7 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
           <img
             class="sticker-character-pose"
             src={`${base}assets/stickers/sheep-guitar-640.webp`}
-            srcset={`${base}assets/stickers/sheep-guitar-400.webp 400w, ${base}assets/stickers/sheep-guitar-640.webp 640w, ${base}assets/stickers/sheep-guitar.webp 953w`}
+            srcset={`${base}assets/stickers/sheep-guitar-400.webp 400w, ${base}assets/stickers/sheep-guitar-640.webp 640w`}
             sizes="(max-width: 719px) 280px, 500px"
             alt=""
             width="953"
@@ -99,7 +108,7 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
           <img
             class="sticker-character-pose"
             src={`${base}assets/stickers/sheep-listening-640.webp`}
-            srcset={`${base}assets/stickers/sheep-listening-400.webp 400w, ${base}assets/stickers/sheep-listening-640.webp 640w, ${base}assets/stickers/sheep-listening.webp 724w`}
+            srcset={`${base}assets/stickers/sheep-listening-400.webp 400w, ${base}assets/stickers/sheep-listening-640.webp 640w`}
             sizes="(max-width: 719px) 280px, 500px"
             alt=""
             width="724"

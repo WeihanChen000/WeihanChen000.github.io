@@ -16,6 +16,7 @@ interface Props {
     srcset?: Array<{ src: string; width: number }>;
     sizes?: string;
     type?: string;
+    fetchpriority?: "high" | "low" | "auto";
   }>;
 }
 
@@ -83,7 +84,7 @@ const structuredData = {
           imagesrcset={imageSrcSet}
           imagesizes={preload.sizes}
           type={preload.type ?? "image/webp"}
-          fetchpriority="high"
+          fetchpriority={preload.fetchpriority ?? "high"}
         />
       );
     })}

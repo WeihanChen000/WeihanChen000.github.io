@@ -318,6 +318,7 @@
   };
   let stickerRun = 0;
   let stickerTimers: number[] = [];
+  let posePrimeTimer = 0;
   const suppressStickerClickUntil = new WeakMap<HTMLButtonElement, number>();
 
   function clearStickerTimers() {
@@ -346,6 +347,20 @@
     if (!pose.src && pose.dataset.src) pose.src = pose.dataset.src;
     if (pose.complete && pose.naturalWidth > 0) return;
     await pose.decode().catch(() => undefined);
+  }
+
+  function scheduleSecondaryPosePriming() {
+    const prime = async () => {
+      await loadStickerPose("guitar");
+      await loadStickerPose("music");
+    };
+    posePrimeTimer = window.setTimeout(() => { void prime(); }, 240);
+  }
+
+  if (document.readyState === "complete") {
+    scheduleSecondaryPosePriming();
+  } else {
+    listen(window, "load", scheduleSecondaryPosePriming, { once: true });
   }
 
   function finishStickerAction(run: number) {
@@ -1025,6 +1040,7 @@
     if (magnetFrame) cancelAnimationFrame(magnetFrame);
     if (narrativeFrame) cancelAnimationFrame(narrativeFrame);
     window.clearTimeout(bubbleCloseTimer);
+    window.clearTimeout(posePrimeTimer);
     clearCharacterReactionMotion();
     clearStickerTimers();
     motionObservers.forEach((observer) => observer.disconnect());
