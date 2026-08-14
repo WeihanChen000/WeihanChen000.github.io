@@ -19,7 +19,11 @@ export default function LiquidEtherBackground() {
       const constrainedDevice = smallScreen.matches
         || (navigator.deviceMemory ?? 8) <= 4
         || (navigator.hardwareConcurrency ?? 8) <= 4;
-      setMotionEnabled(!reducedMotion.matches && !connection?.saveData);
+      setMotionEnabled(
+        !reducedMotion.matches
+        && !connection?.saveData
+        && !constrainedDevice,
+      );
       setInteractionEnabled(finePointer.matches);
       setLowPower(constrainedDevice);
     };

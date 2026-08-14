@@ -21,7 +21,7 @@ interface Props {
 
 const {
   title = "Weihan Chen | Personal Blog",
-  description = "Weihan Chen 的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。",
+  description = "陈威翰（Weihan Chen）的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。",
   image = "assets/character/sheep-hero.png",
   bodyClass = "",
   preloadImages = [],
@@ -31,6 +31,30 @@ const base = import.meta.env.BASE_URL;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const imageURL = new URL(`${base}${image}`, Astro.site);
 const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | Weihan Chen`;
+const siteURL = new URL("/", Astro.site);
+const personID = new URL("/#person", Astro.site);
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": personID.href,
+      name: "Weihan Chen",
+      alternateName: "陈威翰",
+      url: siteURL.href,
+      sameAs: ["https://github.com/WeihanChen000"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": new URL("/#website", Astro.site).href,
+      url: siteURL.href,
+      name: "Weihan Chen 的个人博客",
+      alternateName: "陈威翰的个人博客",
+      inLanguage: "zh-CN",
+      author: { "@id": personID.href },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -40,6 +64,7 @@ const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#171719" />
     <ClientRouter fallback="swap" />
     <link rel="canonical" href={canonicalURL} />
@@ -68,6 +93,7 @@ const fullTitle = title === "Weihan Chen | Personal Blog" ? title : `${title} | 
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={imageURL} />
     <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)}></script>
     <title>{fullTitle}</title>
   </head>
   <body class={bodyClass}>

@@ -25,7 +25,7 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
 <BaseLayout
   bodyClass="home-page"
   title="Weihan Chen | Personal Blog"
-  description="Weihan Chen 的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。"
+  description="陈威翰（Weihan Chen）的个人博客，记录角色设计、AI 工作流、代码与持续构建的项目。"
   image="assets/character/sheep-hero.png"
   preloadImages={[
     {
@@ -85,20 +85,28 @@ const coverSrcSet = (cover: string) => cover.endsWith("-1200.webp")
           />
           <img
             class="sticker-character-pose"
-            data-src={`${base}assets/stickers/sheep-guitar.webp`}
+            src={`${base}assets/stickers/sheep-guitar-640.webp`}
+            srcset={`${base}assets/stickers/sheep-guitar-400.webp 400w, ${base}assets/stickers/sheep-guitar-640.webp 640w, ${base}assets/stickers/sheep-guitar.webp 953w`}
+            sizes="(max-width: 719px) 280px, 500px"
             alt=""
             width="953"
             height="1650"
             decoding="async"
+            loading="eager"
+            fetchpriority="low"
             data-character-pose="guitar"
           />
           <img
             class="sticker-character-pose"
-            data-src={`${base}assets/stickers/sheep-listening.webp`}
+            src={`${base}assets/stickers/sheep-listening-640.webp`}
+            srcset={`${base}assets/stickers/sheep-listening-400.webp 400w, ${base}assets/stickers/sheep-listening-640.webp 640w, ${base}assets/stickers/sheep-listening.webp 724w`}
+            sizes="(max-width: 719px) 280px, 500px"
             alt=""
             width="724"
             height="1495"
             decoding="async"
+            loading="eager"
+            fetchpriority="low"
             data-character-pose="music"
           />
         </span>
